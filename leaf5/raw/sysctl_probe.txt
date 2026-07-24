@@ -1,0 +1,127 @@
+# sysctl probe with stderr
+=== /proc/sys/kernel/kptr_restrict ===
+cat: /proc/sys/kernel/kptr_restrict: Permission denied
+=== /proc/sys/kernel/dmesg_restrict ===
+cat: /proc/sys/kernel/dmesg_restrict: Permission denied
+=== /proc/sys/kernel/perf_event_paranoid ===
+-1
+=== /proc/sys/kernel/randomize_va_space ===
+cat: /proc/sys/kernel/randomize_va_space: Permission denied
+=== /proc/sys/kernel/sysrq ===
+cat: /proc/sys/kernel/sysrq: Permission denied
+=== /proc/sys/kernel/modules_disabled ===
+cat: /proc/sys/kernel/modules_disabled: Permission denied
+=== /proc/sys/kernel/printk ===
+cat: /proc/sys/kernel/printk: Permission denied
+=== /proc/sys/kernel/osrelease ===
+cat: /proc/sys/kernel/osrelease: Permission denied
+=== /proc/sys/kernel/version ===
+cat: /proc/sys/kernel/version: Permission denied
+=== /proc/sys/kernel/hostname ===
+cat: /proc/sys/kernel/hostname: Permission denied
+=== /proc/sys/kernel/domainname ===
+cat: /proc/sys/kernel/domainname: Permission denied
+=== /proc/sys/kernel/unprivileged_bpf_disabled ===
+0
+=== yama ===
+ls: /proc/sys/kernel/yama: No such file or directory
+cat: /proc/sys/kernel/yama/ptrace_scope: No such file or directory
+=== user ns ===
+max_cgroup_namespaces
+max_inotify_instances
+max_inotify_watches
+max_ipc_namespaces
+max_mnt_namespaces
+max_net_namespaces
+max_pid_namespaces
+max_user_namespaces
+max_uts_namespaces
+cat: /proc/sys/user/max_user_namespaces: Permission denied
+=== fs ===
+=== /proc/sys/fs/protected_hardlinks ===
+cat: /proc/sys/fs/protected_hardlinks: Permission denied
+=== /proc/sys/fs/protected_symlinks ===
+cat: /proc/sys/fs/protected_symlinks: Permission denied
+=== /proc/sys/fs/suid_dumpable ===
+cat: /proc/sys/fs/suid_dumpable: Permission denied
+=== list /proc/sys/kernel (first 80) ===
+boot_reason
+cad_pid
+cap_last_cap
+cold_boot
+core_pattern
+core_pipe_limit
+core_uses_pid
+ctrl-alt-del
+dmesg_restrict
+domainname
+firmware_config
+ftrace_dump_on_oops
+hostname
+hotplug
+keys
+kptr_restrict
+max_lock_depth
+modprobe
+modules_disabled
+ngroups_max
+osrelease
+ostype
+overflowgid
+overflowuid
+panic
+panic_on_oops
+panic_on_rcu_stall
+panic_on_warn
+perf_cpu_time_max_percent
+perf_event_max_contexts_per_stack
+perf_event_max_sample_rate
+perf_event_max_stack
+perf_event_mlock_kb
+perf_event_paranoid
+pid_max
+poweroff_cmd
+print-fatal-signals
+printk
+printk_delay
+printk_devkmsg
+printk_ratelimit
+printk_ratelimit_burst
+pty
+random
+randomize_va_space
+real-root-dev
+sched_asym_cap_sibling_freq_match_pct
+sched_autogroup_enabled
+sched_boost
+sched_busy_hyst_ns
+sched_busy_hysteresis_enable_cpus
+sched_child_runs_first
+sched_coloc_busy_hyst_max_ms
+sched_coloc_busy_hyst_ns
+sched_coloc_busy_hysteresis_enable_cpus
+sched_coloc_downmigrate_ns
+sched_conservative_pl
+sched_cpu_high_irqload
+sched_cstate_aware
+sched_domain
+sched_downmigrate
+sched_dynamic_ravg_window_enable
+sched_energy_aware
+sched_force_lb_enable
+sched_group_downmigrate
+sched_group_upmigrate
+sched_latency_ns
+sched_lib_mask_force
+sched_lib_name
+sched_many_wakeup_threshold
+sched_migration_cost_ns
+sched_min_granularity_ns
+sched_min_task_util_for_boost
+sched_min_task_util_for_colocation
+sched_nr_migrate
+sched_prefer_spread
+sched_ravg_window_nr_ticks
+sched_rr_timeslice_ms
+sched_rt_period_us
+sched_rt_runtime_us

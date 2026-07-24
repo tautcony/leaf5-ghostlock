@@ -1,0 +1,13 @@
+# userspace libraries
+/system/bin/linker64
+/system/lib64/libc.so
+
+# selinux booleans (if readable)
+/system/bin/sh: getsebool: inaccessible or not found
+
+# binder open test
+lrwxrwxrwx 1 root root 20 1971-03-19 04:16 /dev/binder -> /dev/binderfs/binder
+cat: /dev/binder: In
+
+# ashmem open test
+cat: /dev/ashmem: Peexit:0

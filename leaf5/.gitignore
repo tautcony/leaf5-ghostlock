@@ -1,0 +1,10 @@
+# Large / regenerable artifacts (do not commit)
+raw/kernel_payload.bin
+raw/vmlinux_try
+raw/kheaders/
+raw/kheaders.tar.xz
+__pycache__/
+.venv/
+*.pyc
+.DS_Store
+uv.lock

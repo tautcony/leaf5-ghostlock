@@ -1,0 +1,103 @@
+# Collected: 2026-07-24T04:54:40Z
+
+## identity
+uid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),1078(ext_data_rw),1079(ext_obb_rw),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid),3012(readtracefs) context=u:r:shell:s0
+Enforcing
+selinux_enforce=1
+
+## /proc/self/status (shell via adb shell sh -c)
+Name:	cat
+State:	R (running)
+Tgid:	6970
+Pid:	6970
+PPid:	2318
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapInh:	0000000000000000
+CapPrm:	0000000000000000
+CapEff:	0000000000000000
+CapBnd:	00000000000000c0
+CapAmb:	0000000000000000
+NoNewPrivs:	0
+Seccomp:	0
+Cpus_allowed:	ff
+Cpus_allowed_list:	0-7
+voluntary_ctxt_switches:	0
+
+## kernel sysctls
+/proc/sys/kernel/kptr_restrict=N/A
+/proc/sys/kernel/dmesg_restrict=N/A
+/proc/sys/kernel/perf_event_paranoid=-1
+/proc/sys/kernel/yama/ptrace_scope=N/A
+/proc/sys/kernel/modules_disabled=N/A
+/proc/sys/kernel/randomize_va_space=N/A
+/proc/sys/kernel/sysrq=N/A
+/proc/sys/kernel/unprivileged_bpf_disabled=0
+/proc/sys/kernel/unprivileged_userns_clone=N/A
+/proc/sys/user/max_user_namespaces=N/A
+/proc/sys/fs/protected_hardlinks=N/A
+/proc/sys/fs/protected_symlinks=N/A
+/proc/sys/fs/suid_dumpable=N/A
+
+## boot_id / hostname
+boot_id=50296039-c7a4-4326-b284-d5ac6215939d
+
+hostname=
+
+## kallsyms accessibility
+ls: /proc/kallsyms: Permission denied
+head: /proc/kallsyms: Permission denied
+
+/system/bin/sh: can't open /proc/kallsyms: Permission denied
+
+## su presence
+ls: /system/xbin/su: No such file or directory
+ls: /system/bin/su: No such file or directory
+ls: /sbin/su: No such file or directory
+ls: /system/bin/magisk: No such file or directory
+
+## mounts of interest
+tmpfs on /dev type tmpfs (rw,seclabel,nosuid,relatime,mode=755)
+selinuxfs on /sys/fs/selinux type selinuxfs (rw,relatime)
+none on /dev/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)
+none on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime)
+none on /dev/cpuctl type cgroup (rw,nosuid,nodev,noexec,relatime,cpu)
+none on /dev/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset,noprefix,release_agent=/sbin/cpuset_release_agent)
+none on /dev/memcg type cgroup (rw,nosuid,nodev,noexec,relatime,memory)
+none on /dev/stune type cgroup (rw,nosuid,nodev,noexec,relatime,schedtune)
+tracefs on /sys/kernel/tracing type tracefs (rw,seclabel,relatime,gid=3012)
+none on /config type configfs (rw,nosuid,nodev,noexec,relatime)
+binder on /dev/binderfs type binder (rw,relatime,max=1048576,stats=global)
+
+## key devices
+ls: /dev/mem: No such file or directory
+ls: /dev/kmem: No such file or directory
+crw-rw-rw- 1 root   root   10,  59 1971-03-19 04:16 /dev/ashmem
+lrwxrwxrwx 1 root   root        20 1971-03-19 04:16 /dev/binder -> /dev/binderfs/binder
+crw------- 1 root   root   10, 229 1971-03-19 04:16 /dev/fuse
+lrwxrwxrwx 1 root   root        22 1971-03-19 04:16 /dev/hwbinder -> /dev/binderfs/hwbinder
+crw-rw-r-- 1 system system 10,  62 1971-03-19 04:16 /dev/ion
+crw--w---- 1 root   system  1,  11 1971-03-19 04:16 /dev/kmsg
+crw-rw-rw- 1 root   root    5,   2 2026-07-24 12:52 /dev/ptmx
+lrwxrwxrwx 1 root   root        23 1971-03-19 04:16 /dev/vndbinder -> /dev/binderfs/vndbinder
+ls: /dev/binderfs: Permission denied
+ls: /dev/dma_heap: No such file or directory
+ls: /dev/dma_heap: No such file or directory
+
+## namespaces
+total 0
+dr-x--x--x 2 shell shell 0 2026-07-24 12:54 .
+dr-xr-xr-x 9 shell shell 0 2026-07-24 12:54 ..
+lrwxrwxrwx 1 shell shell 0 2026-07-24 12:54 cgroup -> cgroup:[4026531835]
+lrwxrwxrwx 1 shell shell 0 2026-07-24 12:54 mnt -> mnt:[4026531840]
+lrwxrwxrwx 1 shell shell 0 2026-07-24 12:54 net -> net:[4026531922]
+lrwxrwxrwx 1 shell shell 0 2026-07-24 12:54 uts -> uts:[4026531838]
+
+## capabilities bound for shell (via getprop/id done)
+Name:	init
+Uid:	0	0	0	0
+CapInh:	0000000000000000
+CapPrm:	0000003fffffffff
+CapEff:	0000003fffffffff
+CapBnd:	0000003fffffffff
+CapAmb:	0000000000000000

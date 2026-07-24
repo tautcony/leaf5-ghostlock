@@ -1,0 +1,11 @@
+UTS_RELEASE from kheaders: 4.19.157-perf-g3d47a6619220-dirty
+UTS_VERSION from kheaders: #244 SMP PREEMPT Fri Apr 10 15:14:29 CST 2026
+runtime uname: #245 SMP PREEMPT Fri Apr 10 15:19:22 CST 2026
+delta: same git hash, build number +1 (~5 min later) — treat headers as matching runtime
+
+Firefox: org.mozilla.firefox versionName=151.0.2 versionCode=2016163079
+Chrome: org.chromium.chrome present
+
+host boot.img banner: 4.19.157-perf-g87880838aed5-dirty #119 Jul 29 2025
+host boot.img sha256: de7e26b93d7e98ba26d3941f466c0300c26b671d42a9633a2e43d44fe75f7a5d
+WARNING: host boot.img != runtime kernel

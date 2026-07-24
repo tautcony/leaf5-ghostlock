@@ -1,0 +1,21 @@
+CPU implementer 0x51 = Qualcomm
+CPU part 0x805 = Kryo (see cpuinfo)
+CPU part	: 0x805
+CPU part	: 0xd0d
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+processor	: 0
+processor	: 1
+processor	: 2
+processor	: 3
+processor	: 4
+processor	: 5
+processor	: 6
+processor	: 7
+
+lito
+qcom
+LAGOON
+Snapdragon
+434
+10:2026-04-21_12-49_4.2-rel_0421_19324b3ea:542
+

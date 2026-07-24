@@ -1,0 +1,8 @@
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+tr: Illegal byte sequence
+extract-vmlinux: Extracted vmlinux using 'cat' from offset 0

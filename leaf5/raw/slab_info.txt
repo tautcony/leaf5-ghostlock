@@ -1,0 +1,4 @@
+# slab listing (filtered)
+f2fs_inode_cache
+
+# kmalloc-* details

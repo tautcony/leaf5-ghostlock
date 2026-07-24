@@ -1,0 +1,162 @@
+# Collected: 2026-07-24T04:55:15Z
+
+## /dev/block
+total 0
+drwxr-xr-x  6 root   root       2740 1971-03-19 04:16 .
+drwxr-xr-x 25 root   root       3980 2026-07-24 12:46 ..
+lrwxrwxrwx  1 root   root         36 1971-03-19 04:16 bootdevice -> /dev/block/platform/soc/7c4000.sdhci
+drwxr-xr-x  2 root   root       1660 1971-03-19 04:16 by-name
+brw-------  1 root   root   253,   0 1971-03-19 04:16 dm-0
+brw-------  1 root   root   253,   1 1971-03-19 04:16 dm-1
+brw-------  1 root   root   253,  10 1971-03-19 04:16 dm-10
+brw-------  1 root   root   253,  11 1971-03-19 04:16 dm-11
+brw-------  1 root   root   253,  12 1971-03-19 04:16 dm-12
+brw-------  1 root   root   253,  13 1971-03-19 04:16 dm-13
+brw-------  1 root   root   253,   2 1971-03-19 04:16 dm-2
+brw-------  1 root   root   253,   3 1971-03-19 04:16 dm-3
+brw-------  1 root   root   253,   4 1971-03-19 04:16 dm-4
+brw-------  1 root   root   253,   5 1971-03-19 04:16 dm-5
+brw-------  1 root   root   253,   6 1971-03-19 04:16 dm-6
+brw-------  1 root   root   253,   7 1971-03-19 04:16 dm-7
+brw-------  1 root   root   253,   8 1971-03-19 04:16 dm-8
+brw-------  1 root   root   253,   9 1971-03-19 04:16 dm-9
+brw-------  1 root   root     7,   0 1971-03-19 04:16 loop0
+brw-------  1 root   root     7,   8 1971-03-19 04:16 loop1
+brw-------  1 root   root     7,  80 1971-03-19 04:16 loop10
+brw-------  1 root   root     7,  88 1971-03-19 04:16 loop11
+brw-------  1 root   root     7,  96 1971-03-19 04:16 loop12
+brw-------  1 root   root     7, 104 1971-03-19 04:16 loop13
+brw-------  1 root   root     7, 112 1971-03-19 04:16 loop14
+brw-------  1 root   root     7, 120 1971-03-19 04:16 loop15
+brw-------  1 root   root     7,  16 1971-03-19 04:16 loop2
+brw-------  1 root   root     7,  24 1971-03-19 04:16 loop3
+brw-------  1 root   root     7,  32 1971-03-19 04:16 loop4
+
+## by-name
+total 0
+drwxr-xr-x 2 root root 1660 1971-03-19 04:16 .
+drwxr-xr-x 6 root root 2740 1971-03-19 04:16 ..
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 abl_a -> /dev/block/mmcblk0p33
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 abl_b -> /dev/block/mmcblk0p34
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 aop_a -> /dev/block/mmcblk0p9
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 aop_b -> /dev/block/mmcblk0p10
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 apdp -> /dev/block/mmcblk0p59
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 bluetooth_a -> /dev/block/mmcblk0p36
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 bluetooth_b -> /dev/block/mmcblk0p37
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 boot_a -> /dev/block/mmcblk0p13
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 boot_b -> /dev/block/mmcblk0p14
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 catecontentfv -> /dev/block/mmcblk0p73
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 catefv -> /dev/block/mmcblk0p72
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 cateloader -> /dev/block/mmcblk0p66
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 core_nhlos_a -> /dev/block/mmcblk0p29
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 core_nhlos_b -> /dev/block/mmcblk0p30
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 ddr -> /dev/block/mmcblk0p35
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 devcfg_a -> /dev/block/mmcblk0p48
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 devcfg_b -> /dev/block/mmcblk0p49
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 devinfo -> /dev/block/mmcblk0p57
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 dip -> /dev/block/mmcblk0p58
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 dsp_a -> /dev/block/mmcblk0p31
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 dsp_b -> /dev/block/mmcblk0p32
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 dtbo_a -> /dev/block/mmcblk0p39
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 dtbo_b -> /dev/block/mmcblk0p40
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 featenabler_a -> /dev/block/mmcblk0p50
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 featenabler_b -> /dev/block/mmcblk0p52
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 frp -> /dev/block/mmcblk0p55
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 fsc -> /dev/block/mmcblk0p78
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 fsg -> /dev/block/mmcblk0p77
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 hyp_a -> /dev/block/mmcblk0p11
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 hyp_b -> /dev/block/mmcblk0p12
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 imagefv_a -> /dev/block/mmcblk0p41
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 imagefv_b -> /dev/block/mmcblk0p42
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 keymaster_a -> /dev/block/mmcblk0p21
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 keymaster_b -> /dev/block/mmcblk0p22
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 keystore -> /dev/block/mmcblk0p47
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 limits -> /dev/block/mmcblk0p62
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 limits-cdsp -> /dev/block/mmcblk0p63
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 logdump -> /dev/block/mmcblk0p67
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 logfs -> /dev/block/mmcblk0p65
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 mdtp_a -> /dev/block/mmcblk0p25
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 mdtp_b -> /dev/block/mmcblk0p26
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 mdtpsecapp_a -> /dev/block/mmcblk0p23
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 mdtpsecapp_b -> /dev/block/mmcblk0p24
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 metadata -> /dev/block/mmcblk0p20
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 misc -> /dev/block/mmcblk0p46
+lrwxrwxrwx 1 root root   18 1971-03-19 04:16 mmcblk0 -> /dev/block/mmcblk0
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 modem_a -> /dev/block/mmcblk0p27
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 modem_b -> /dev/block/mmcblk0p28
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 modemst1 -> /dev/block/mmcblk0p75
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 modemst2 -> /dev/block/mmcblk0p76
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 multiimgoem_a -> /dev/block/mmcblk0p7
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 multiimgoem_b -> /dev/block/mmcblk0p8
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 onyxconfig -> /dev/block/mmcblk0p79
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 persist -> /dev/block/mmcblk0p45
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 questdatafv -> /dev/block/mmcblk0p51
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 qupfw_a -> /dev/block/mmcblk0p53
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 qupfw_b -> /dev/block/mmcblk0p54
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 rawdump -> /dev/block/mmcblk0p56
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 recovery_a -> /dev/block/mmcblk0p16
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 recovery_b -> /dev/block/mmcblk0p17
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 secdata -> /dev/block/mmcblk0p71
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 splash -> /dev/block/mmcblk0p61
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 spunvm -> /dev/block/mmcblk0p60
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 ssd -> /dev/block/mmcblk0p38
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 storsec -> /dev/block/mmcblk0p70
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 super -> /dev/block/mmcblk0p15
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 toolsfv -> /dev/block/mmcblk0p64
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 tz_a -> /dev/block/mmcblk0p5
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 tz_b -> /dev/block/mmcblk0p6
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 uefisecapp_a -> /dev/block/mmcblk0p43
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 uefisecapp_b -> /dev/block/mmcblk0p44
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 uefivarstore -> /dev/block/mmcblk0p74
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 userdata -> /dev/block/mmcblk0p80
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 vbmeta_a -> /dev/block/mmcblk0p68
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 vbmeta_b -> /dev/block/mmcblk0p69
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 vbmeta_system_a -> /dev/block/mmcblk0p18
+lrwxrwxrwx 1 root root   21 1971-03-19 04:16 vbmeta_system_b -> /dev/block/mmcblk0p19
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 xbl_a -> /dev/block/mmcblk0p1
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 xbl_b -> /dev/block/mmcblk0p2
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 xbl_config_a -> /dev/block/mmcblk0p3
+lrwxrwxrwx 1 root root   20 1971-03-19 04:16 xbl_config_b -> /dev/block/mmcblk0p4
+
+## boot device resolve
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/abl_a -> /dev/block/mmcblk0p33
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/abl_b -> /dev/block/mmcblk0p34
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/boot_a -> /dev/block/mmcblk0p13
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/boot_b -> /dev/block/mmcblk0p14
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/dtbo_a -> /dev/block/mmcblk0p39
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/dtbo_b -> /dev/block/mmcblk0p40
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/vbmeta_a -> /dev/block/mmcblk0p68
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/vbmeta_b -> /dev/block/mmcblk0p69
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/vbmeta_system_a -> /dev/block/mmcblk0p18
+lrwxrwxrwx 1 root root 21 1971-03-19 04:16 /dev/block/by-name/vbmeta_system_b -> /dev/block/mmcblk0p19
+lrwxrwxrwx 1 root root 20 1971-03-19 04:16 /dev/block/by-name/xbl_a -> /dev/block/mmcblk0p1
+lrwxrwxrwx 1 root root 20 1971-03-19 04:16 /dev/block/by-name/xbl_b -> /dev/block/mmcblk0p2
+lrwxrwxrwx 1 root root 20 1971-03-19 04:16 /dev/block/by-name/xbl_config_a -> /dev/block/mmcblk0p3
+lrwxrwxrwx 1 root root 20 1971-03-19 04:16 /dev/block/by-name/xbl_config_b -> /dev/block/mmcblk0p4
+
+## getprop partition paths
+ro.boot.bootdevice=7c4000.sdhci
+
+ro.boot.slot_suffix=_a
+
+
+## try dd permission (no write)
+uid=2000(shell) gid=2000(shell) groups=2000(shell),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),1078(ext_data_rw),1079(ext_obb_rw),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid),3012(readtracefs) context=u:r:shell:s0
+ls: /dev/block/by-name/boot: No such file or directory
+dd: /dev/block/by-name/boot: No such file or directory
+0+0 records in
+0+0 records out
+0 bytes (0 B) copied, 0.000223 s, 0 B/s
+
+## /proc/mtd /proc/partitions
+cat: /proc/partitions: Permission denied
+
+## find boot.img on device storage
+ls: /sdcard/Download/*.img: No such file or directory
+ls: /sdcard/*.img: No such file or directory
+ls: /data/local/tmp/*.img: No such file or directory
+
+## cmdline
+
+## iomem (head)
+cat: /proc/iomem: Permission denied

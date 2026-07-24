@@ -1,0 +1,9 @@
+# version comparison
+runtime: Linux version 4.19.157-perf-g3d47a6619220-dirty (onyx@onyxUbuntu) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #245 SMP PREEMPT Fri Apr 10 15:19:22 CST 2026
+host_boot_strings:
+Linux version 4.19.157-perf-g87880838aed5-dirty (onyx@onyxUbuntu) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #119 SMP PREEMPT Tue Jul 29 16:02:51 CST 2025
+
+sha256 boot.img:
+de7e26b93d7e98ba26d3941f466c0300c26b671d42a9633a2e43d44fe75f7a5d  ../boot.img
+sha256 config.gz:
+240c0e39e36fdf83273c1e5366b26cffe0cf0d5dc69711ad07289b5df69709ed  raw/config.gz

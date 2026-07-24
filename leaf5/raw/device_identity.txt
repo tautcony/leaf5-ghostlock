@@ -1,0 +1,147 @@
+# Collected: 2026-07-24T04:54:39Z
+# Serial: ac340d06
+
+## getprop (selected)
+ro.product.model=Leaf5
+ro.product.brand=Onyx
+ro.product.manufacturer=ONYX
+ro.product.device=Leaf5
+ro.product.name=Leaf5
+ro.product.board=lito
+ro.board.platform=lito
+ro.product.cpu.abi=arm64-v8a
+ro.build.product=Leaf5
+ro.build.version.release=13
+ro.build.version.sdk=33
+ro.build.version.security_patch=2026-04-01
+ro.build.display.id=2026-04-21_12-49_4.2-rel_0421_19324b3ea
+ro.build.fingerprint=ONYX/TabBoox/TabBoox:13/TKQ1.230615.001/GV2.027.SQ83A:user/release-keys
+ro.build.type=user
+ro.build.tags=release-keys
+ro.build.id=2026-04-21_12-49_4.2-rel_0421_19324b3ea
+ro.build.version.incremental=542
+ro.hardware=qcom
+ro.boot.hardware=qcom
+ro.serialno=ac340d06
+ro.boot.serialno=ac340d06
+ro.boot.verifiedbootstate=orange
+ro.boot.flash.locked=0
+ro.boot.vbmeta.device_state=unlocked
+ro.boot.slot_suffix=_a
+ro.boot.baseband=apq
+ro.boot.mode=
+ro.secure=1
+ro.debuggable=0
+ro.adb.secure=1
+ro.boot.selinux=
+ro.build.selinux=
+gsm.version.baseband=
+ro.bootloader=unknown
+ro.boot.bootloader=
+
+## uname / version
+Linux localhost 4.19.157-perf-g3d47a6619220-dirty #245 SMP PREEMPT Fri Apr 10 15:19:22 CST 2026 aarch64 Toybox
+Linux version 4.19.157-perf-g3d47a6619220-dirty (onyx@onyxUbuntu) (clang version 10.0.7 for Android NDK, GNU ld (binutils-2.27-bd24d23f) 2.27.0.20170315) #245 SMP PREEMPT Fri Apr 10 15:19:22 CST 2026
+
+## cpu
+Processor	: AArch64 Processor rev 0 (aarch64)
+processor	: 0
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 1
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 2
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 3
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 4
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 5
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x51
+CPU architecture: 8
+CPU variant	: 0xd
+CPU part	: 0x805
+CPU revision	: 14
+
+processor	: 6
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0xd0d
+CPU revision	: 0
+
+processor	: 7
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0xd0d
+CPU revision	: 0
+
+Hardware	: Qualcomm Technologies, Inc LAGOON
+
+## meminfo (head)
+MemTotal:        3533788 kB
+MemFree:           40864 kB
+MemAvailable:    1221028 kB
+Buffers:            1040 kB
+Cached:          1229204 kB
+SwapCached:        38068 kB
+Active:          1407356 kB
+Inactive:         964104 kB
+Active(anon):     818796 kB
+Inactive(anon):   348236 kB
+Active(file):     588560 kB
+Inactive(file):   615868 kB
+Unevictable:        7004 kB
+Mlocked:            7004 kB
+SwapTotal:       2097148 kB
+SwapFree:        1410500 kB
+Dirty:               500 kB
+Writeback:             0 kB
+AnonPages:       1147424 kB
+Mapped:           354296 kB
+
+## cpu topology
+possible=0-7
+present=0-7
+online=0-7

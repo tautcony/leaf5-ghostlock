@@ -1,0 +1,197 @@
+# Collected: 2026-07-24T04:55:15Z
+
+## binder
+ls: /dev/binderfs: Permission denied
+7
+binder,hwbinder,vndbinder
+0
+
+## ashmem
+crw-rw-rw- 1 root root 10,  59 1971-03-19 04:16 /dev/ashmem
+dev
+power
+subsystem
+uevent
+
+## configfs tree (depth 2)
+ls: /config: Permission denied
+ls: /config/*: Permission denied
+
+## debugfs
+ls: /sys/kernel/debug: No such file or directory
+
+## io_uring support probe via python? check syscall
+boot_adsp
+boot_cdsp
+cgroup
+config
+dload
+fscaps
+gpu
+iommu_groups
+ion
+irq
+kheaders.tar.xz
+mm
+notes
+profiling
+q6audio
+rcu_expedited
+rcu_normal
+shutdown_wlan
+slab
+tracing
+uevent_helper
+uevent_seqnum
+wakeup_reasons
+wifi
+
+## netlink / nfnetlink
+anycast6
+arp
+arp_tables_matches
+arp_tables_names
+arp_tables_targets
+bonding
+dev
+dev_mcast
+dev_snmp6
+fib_trie
+fib_triestat
+hci
+icmp
+icmp6
+if_inet6
+igmp
+igmp6
+ip6_flowlabel
+ip6_tables_matches
+ip6_tables_names
+ip6_tables_targets
+ip6t_hashlimit
+ip_tables_matches
+ip_tables_names
+ip_tables_targets
+ipconfig
+ipt_hashlimit
+ipv6_route
+l2cap
+mcfilter
+mcfilter6
+netfilter
+netlink
+netstat
+nf_conntrack
+nf_conntrack_expect
+packet
+pfkey
+pnp
+pppoe
+nf_log
+nfnetlink_log
+nfnetlink_queue
+
+## futex: no direct sysfs; check config later
+
+## /proc/self maps sample
+5d4f46b000-5d4f497000 r--p 00000000 fd:08 1708                           /system/bin/toybox
+5d4f497000-5d4f4df000 r-xp 0002c000 fd:08 1708                           /system/bin/toybox
+5d4f4df000-5d4f4e3000 r--p 00074000 fd:08 1708                           /system/bin/toybox
+5d4f4e3000-5d4f4e7000 rw-p 00077000 fd:08 1708                           /system/bin/toybox
+5d4f4e7000-5d4f4eb000 rw-p 00000000 00:00 0                              [anon:.bss]
+6e490d6000-6e493c0000 ---p 00000000 00:00 0                              [anon:cfi shadow]
+6e493c0000-6e493c1000 r--p 00000000 00:00 0                              [anon:cfi shadow]
+6e493c1000-6e4945f000 ---p 00000000 00:00 0                              [anon:cfi shadow]
+6e4945f000-6e49460000 r--p 00000000 00:00 0                              [anon:cfi shadow]
+6e49460000-6e49461000 r--p 00000000 00:00 0                              [anon:cfi shadow]
+6e49461000-6ec90d6000 ---p 00000000 00:00 0                              [anon:cfi shadow]
+6ec90d6000-6ec90d7000 ---p 00000000 00:00 0 
+6ec90d7000-6ec9117000 rw-p 00000000 00:00 0                              [anon:scudo:primary]
+6ec9117000-6ed90df000 ---p 00000000 00:00 0 
+6ed90df000-6ed911f000 rw-p 00000000 00:00 0                              [anon:scudo:primary]
+6ed911f000-6ee90e1000 ---p 00000000 00:00 0 
+6ee90e1000-6ee9121000 rw-p 00000000 00:00 0                              [anon:scudo:primary]
+6ee9121000-6ef90e0000 ---p 00000000 00:00 0 
+6ef90e0000-6ef9120000 rw-p 00000000 00:00 0                              [anon:scudo:primary]
+6ef9120000-6f190df000 ---p 00000000 00:00 0 
+
+## auxv
+        0000000000000021        00000073f2d6f000
+        0000000000000033        0000000000001270
+        0000000000000010        0000000000119fff
+        0000000000000006        0000000000001000
+        0000000000000011        0000000000000064
+        0000000000000003        0000006238d1a040
+        0000000000000004        0000000000000038
+        0000000000000005        000000000000000e
+        0000000000000007        00000073f2d70000
+        0000000000000008        0000000000000000
+        0000000000000009        0000006238d46000
+        000000000000000b        00000000000007d0
+        000000000000000c        00000000000007d0
+        000000000000000d        00000000000007d0
+        000000000000000e        00000000000007d0
+        0000000000000017        0000000000000000
+        0000000000000019        0000007fd7b16978
+        000000000000001f        0000007fd7b17fe9
+        000000000000000f        0000007fd7b16988
+        0000000000000000        0000000000000000
+
+## modules
+Module                  Size  Used by
+wlan                 7045120  0 
+machine_dlkm          143360  0 
+wcd937x_slave_dlkm     16384  0 
+wcd937x_dlkm           94208  2 machine_dlkm
+wcd938x_slave_dlkm     16384  0 
+wcd938x_dlkm           98304  1 machine_dlkm
+wcd9xxx_dlkm           40960  22 wcd937x_dlkm,wcd938x_dlkm
+mbhc_dlkm              45056  2 wcd937x_dlkm,wcd938x_dlkm
+tx_macro_dlkm         106496  0 
+rx_macro_dlkm          94208  0 
+va_macro_dlkm          98304  0 
+wsa_macro_dlkm         65536  1 machine_dlkm
+swr_ctrl_dlkm          49152  4 tx_macro_dlkm,rx_macro_dlkm,va_macro_dlkm,wsa_macro_dlkm
+bolero_cdc_dlkm        57344  6 machine_dlkm,tx_macro_dlkm,rx_macro_dlkm,va_macro_dlkm,wsa_macro_dlkm
+wsa883x_dlkm           49152  1 machine_dlkm
+wsa881x_dlkm           45056  1 machine_dlkm
+wcd_core_dlkm          28672  9 machine_dlkm,wcd937x_dlkm,wcd938x_dlkm,tx_macro_dlkm,rx_macro_dlkm,va_macro_dlkm,wsa_macro_dlkm,wsa883x_dlkm,wsa881x_dlkm
+stub_dlkm              16384  1 
+hdmi_dlkm              20480  1 
+swr_dlkm               24576  7 wcd937x_slave_dlkm,wcd937x_dlkm,wcd938x_slave_dlkm,wcd938x_dlkm,swr_ctrl_dlkm,wsa883x_dlkm,wsa881x_dlkm
+pinctrl_lpi_dlkm       20480  9 
+usf_dlkm               45056  0 
+native_dlkm           135168  0 
+platform_dlkm        1949696  45 native_dlkm
+q6_dlkm               860160  11 machine_dlkm,wcd9xxx_dlkm,va_macro_dlkm,swr_ctrl_dlkm,bolero_cdc_dlkm,pinctrl_lpi_dlkm,usf_dlkm,native_dlkm,platform_dlkm
+adsp_loader_dlkm       16384  0 
+apr_dlkm              229376  4 usf_dlkm,platform_dlkm,q6_dlkm,adsp_loader_dlkm
+snd_event_dlkm         16384  5 machine_dlkm,bolero_cdc_dlkm,pinctrl_lpi_dlkm,q6_dlkm,apr_dlkm
+q6_notifier_dlkm       16384  2 pinctrl_lpi_dlkm,apr_dlkm
+
+## SELinux policy version / status
+31access
+avc
+booleans
+checkreqprot
+class
+commit_pending_bools
+context
+create
+deny_unknown
+disable
+enforce
+initial_contexts
+load
+member
+mls
+null
+policy
+policy_capabilities
+policyvers
+reject_unknown
+relabel
+ss
+status
+user
+validatetrans

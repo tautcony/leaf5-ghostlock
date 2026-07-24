@@ -1,0 +1,34 @@
+MemTotal:        3533788 kB
+MemFree:           57180 kB
+MemAvailable:    1197928 kB
+Buffers:            1232 kB
+Cached:          1147816 kB
+SwapCached:        38064 kB
+Active:          1424768 kB
+Inactive:         916980 kB
+Active(anon):     856012 kB
+Inactive(anon):   362720 kB
+Active(file):     568756 kB
+Inactive(file):   554260 kB
+Unevictable:        7004 kB
+Mlocked:            7004 kB
+SwapTotal:       2097148 kB
+
+4096
+4096
+---
+7356799000-735679a000 ---p 00000000 00:00 0 
+735679a000-73567a2000 rw-p 00000000 00:00 0                              [anon:thread signal stack]
+73567a2000-73567a3000 rw-p 00000000 00:00 0                              [anon:arc4random data]
+73567a4000-73567a5000 r--p 00000000 00:00 0                              [anon:atexit handlers]
+73567a5000-73567a6000 rw-p 00000000 00:00 0                              [anon:arc4random data]
+73567a6000-73567a7000 r--p 00000000 00:00 0                              [vvar]
+73567a7000-73567a8000 r-xp 00000000 00:00 0                              [vdso]
+73567a8000-73567e0000 r--p 00000000 fd:08 535                            /apex/com.android.runtime/bin/linker64
+73567e0000-73568ca000 r-xp 00038000 fd:08 535                            /apex/com.android.runtime/bin/linker64
+73568ca000-73568d2000 r--p 00122000 fd:08 535                            /apex/com.android.runtime/bin/linker64
+73568d2000-73568d4000 rw-p 00129000 fd:08 535                            /apex/com.android.runtime/bin/linker64
+73568d4000-73568dd000 rw-p 00000000 00:00 0                              [anon:.bss]
+73568dd000-73568de000 r--p 00000000 00:00 0                              [anon:.bss]
+73568de000-73568e0000 rw-p 00000000 00:00 0                              [anon:.bss]
+7fd23c3000-7fd23e4000 rw-p 00000000 00:00 0                              [stack]
