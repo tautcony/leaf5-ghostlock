@@ -12,6 +12,8 @@ dependencies = [
 leaf5-collect = "scripts.collect_device:main"
 leaf5-summarize = "scripts.summarize_config:main"
 leaf5-extract-offsets = "scripts.extract_offsets:main"
+leaf5-mm-params = "scripts.extract_mm_struct_params:main"
+leaf5-search-params = "scripts.search_params:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -445,6 +445,44 @@ Onyx Leaf5
 - ✅ `scripts/extract_offsets.py` — 可复用偏移提取工具
 - ⚠️ `[SRC]`/`[EST]` 标记的偏移需 pahole 或 IDA 复核后方可用于生产 exploit
 
+### 8.8 MM_STRUCT_SZ 与 MM_ORDER（2026-07-24）
+
+#### 提取方法
+
+1. 定位 `fork_init` 中的 `kmem_cache_create_usercopy("mm_struct", size, ...)` 调用
+2. ARM64 反汇编追溯 `w1` 寄存器值（需手动解码 `bl`/`adrp` 指令，capstone 5.x Python API 对这些操作数的 `op.imm` 返回错误值）
+3. 通过 `mm_alloc → memset(mm, 0, 0x380)` 交叉验证（8 字节差额由 `mm_init` 显式初始化）
+4. 实现 Linux 4.19 `mm/slub.c` 的 `calculate_order()` 算法，结合 `CONFIG_NR_CPUS=8`
+
+#### 结果
+
+| 参数 | 旧假设 (OPPO Find N2, 5.10) | 实际 (Leaf5, 4.19) | 差异 |
+|------|---------------------------|---------------------|------|
+| `sizeof(struct mm_struct)` | `0x3c0` (960B) | **`0x388`** (904B) | **−56B** |
+| MM_ORDER | 3 | **3** | ✓ 不变 |
+| 对象数 / slab | 34 | **36** | +2 |
+| 浪费 / slab | — | 224B (0.68%) | — |
+
+#### 数据源
+
+| 项 | 源 | 可信度 |
+|----|-----|--------|
+| `w1=0x388` | `fork_init` ARM64 反汇编 | ★★★★★ |
+| `memset size=0x380` | `mm_alloc` ARM64 反汇编 | ★★★★☆ |
+| `CONFIG_NR_CPUS=8` | `/proc/config.gz` | ★★★★★ |
+| slab order=3 | 4.19 算法计算 | ★★★★☆ |
+
+#### 使用脚本
+
+```bash
+cd leaf5
+uv run leaf5-mm-params         # 人类可读输出
+uv run leaf5-mm-params --json  # JSON 输出（供脚本消费）
+```
+
+> **注意**：`common.h` 中的 `MM_STRUCT_SZ 0x3c0` 对 Leaf5 是**错误的**，比实际值大 56 字节。
+> 这会导致 KernelSnitch 扫描时对象间距算错（36 对象/slab 当 34 去跳），实际表现为扫描永远跳过真正的 mm_struct → 无限循环。
+
 ---
 
 ## 9. 复现命令清单
@@ -470,6 +508,13 @@ adb exec-out cat /sys/kernel/kheaders.tar.xz > raw/kheaders.tar.xz
 # 4. 核对 boot.img 是否等于 runtime（当前预期：不等于）
 strings ../boot.img | grep 'Linux version 4.19' | head
 adb shell cat /proc/version
+
+# 5. 提取内核偏移（需先运行 vmlinux-to-elf 生成 raw/vmlinux.elf）
+uv run leaf5-extract-offsets
+
+# 6. 提取 MM_STRUCT_SZ 与 MM_ORDER
+uv run leaf5-mm-params
+uv run leaf5-mm-params --json  # JSON 输出
 ```
 
 ---
@@ -479,3 +524,4 @@ adb shell cat /proc/version
 | 日期 | 说明 |
 |------|------|
 | 2026-07-24 | 从零重做分析；废弃旧 leaf5 文档/结论；确立 config.gz + kheaders 为权威 runtime 源；标记仓库 boot.img 版本不匹配 |
+| 2026-07-24 | 新增 MM_STRUCT_SZ=0x388 / MM_ORDER=3 分析；新增 `scripts/extract_mm_struct_params.py`；新增 `leaf5-mm-params` 入口；修正 common.h 中 0x3c0→0x388 |

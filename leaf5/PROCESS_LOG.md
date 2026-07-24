@@ -110,6 +110,24 @@
 - `uv run leaf5-extract-offsets` — 入口命令
 - 依赖：`capstone` + `pyelftools`（通过 uv 管理）
 
+### 15. MM_STRUCT_SZ 与 MM_ORDER 提取
+
+- 反汇编 `fork_init`，定位 `kmem_cache_create_usercopy("mm_struct", size, ...)` 调用点
+- **发现 capstone 5.x 的 bl/adrp op.imm 返回错误值**（是 capstone 内部编码而非目标地址）
+- 改用手动 ARM64 指令解码：`decode_bl_target()` 解码 imm26 字段、`decode_adrp_page()` 解码 imm21 字段
+- `mov w1/w4/w5, #imm` 的 op.imm 正常可用
+- 追溯寄存器值：`w1=0x388`, `w4=0x150` (useroffset), `w5=0x170` (usersize)
+- 交叉验证：`mm_alloc` 中 `memset(mm, 0, 0x380)` — 8 字节差额由 mm_init 显式初始化
+- 实现 Linux 4.19 SLUB `calculate_order()` 算法，输入 object_size=904 + CONFIG_NR_CPUS=8
+- min_objects=20, order-3 (32KB) fits 36 objects, waste 0.68% → **MM_ORDER=3**
+
+### 16. 提取工具脚本化
+
+- 编写 `scripts/extract_mm_struct_params.py` — 可复用 MM_STRUCT_SZ/MM_ORDER 提取工具
+- 注册 `leaf5-mm-params` 入口（`pyproject.toml`）
+- 支持 `--json` 输出供脚本消费
+- 支持 `--elf` / `--config` 参数指定非默认路径
+
 ## 未执行（本阶段）
 
 - pahole / IDA 验证 [SRC]/[EST] 标记的偏移
