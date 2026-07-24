@@ -1,3 +1,5 @@
+> **文档类型**: 结论文档（分析汇总） | **状态**: ⚠️ 需更新 — CFU 扫描已从"进行中"→"完成"，发现 qcedev_ioctl 等 143 个可行路由；总体结论需修正 | **最后更新**: 2026-07-24
+
 # GhostLock 四路并行分析 — 汇总
 
 **日期**: 2026-07-24
@@ -10,18 +12,30 @@
 
 | # | 方向 | 状态 | 核心结论 |
 |---|------|------|---------|
-| 1 | 堆喷射绕过 | ✅ 完成 | 循环依赖阻塞：需要先有内核 R/W 才能建立堆喷射 |
-| 2 | 全局 copy_from_user 扫描 | 🔄 进行中 | 优化扫描器开发中 |
-| 3 | Binder 命令深度分析 | ✅ 完成 | Δ=0 完美对齐, 但 SP+0x20..SP+0x60 全为内核指针; 2处CFU均在SP+0xa8; 12个BC_*命令无一写入waiter范围 |
+| 1 | 堆喷射绕过 | ✅ 完成 | 原判定为循环依赖阻塞；CFU 扫描发现 qcedev_ioctl 后可打破此依赖 |
+| 2 | 全局 copy_from_user 扫描 | ✅ 完成 | 309 函数/724 调用点；**发现 qcedev_ioctl 等 143 个可行路由**，waitor 全覆盖 64B |
+| 3 | Binder 命令深度分析 | ✅ 完成 | Δ=0 完美对齐, 但 SP+0x20..SP+0x60 全为内核指针; 2处CFU均在SP+0xa8; 不可行 |
 | 4 | do_select 缓冲区分析 | ✅ 完成 | 无用户可控缓冲区在 waiter 位置 |
 
 ---
 
 ## 总体结论
 
-### 阻塞点: pselect 栈覆盖不可行
+### 原结论（已修正）
 
-所有 4 个方向的分析确认了一个核心问题：**Leaf5 4.19 内核的栈帧布局导致 pselect fd_set 无法与 GhostLock 悬垂 waiter 重叠**。
+~~所有 4 个方向的分析确认了一个核心问题：Leaf5 4.19 内核的栈帧布局导致 pselect fd_set 无法与 GhostLock 悬垂 waiter 重叠。~~
+
+### 修正结论（2026-07-24 CFU 扫描完成后）
+
+pselect/binder/sendmsg/recvmsg/do_select 五条常规路由均不可行。但**全局 copy_from_user 扫描发现了新的可行栈覆盖路由**：
+
+- **qcedev_ioctl**（`/dev/qcedev`, `crw-rw-rw-`）：328 字节用户缓冲区在标准 ioctl 深度下与 waiter **完全重叠**（64/64 字节），深度容差 0x70-0x100
+- **ipa3_ioctl**（`/dev/ipa`）：108 字节，全覆盖但容差较窄
+- 共 **143 个调用点**可实现完整 waiter 覆盖
+
+**循环依赖已可解**: `qcedev_ioctl 栈覆盖 → configfs/ashmem fops 覆写 → 内核 R/W 原语 → 堆喷射 → 提权`
+
+详见 [copy-from-user-scan/ANALYSIS.md](copy-from-user-scan/ANALYSIS.md)。
 
 ```
 Waiter 位置 (绝对):     -0x380  (futex_wait 帧内, futex_q+0x48)
@@ -74,8 +88,9 @@ binder_thread_write 是**唯一** Δ=0 完美对齐的路由，但:
 
 ### 2. 全局扫描 (`copy-from-user-scan/`)
 
-**脚本**: 优化扫描器开发中
-**目标**: 扫描 vmlinux.elf 中 685 个 copy_from_user 调用，寻找任意与 waiter 重叠的目标
+**脚本**: `scanner.py` (优化版，~7.5s 完成)
+**结果**: 309 候选函数、724 CFU 调用点。**发现 qcedev_ioctl (328B@SP+0x50, 帧0x360) 在 ioctl 深度 0xA0 下与 waiter 完全重叠 (64B)。ipa3_ioctl 同样全覆盖。143 个调用点可实现完整 waiter 覆盖。**
+详见 [copy-from-user-scan/ANALYSIS.md](copy-from-user-scan/ANALYSIS.md)。
 
 ### 3. Binder 命令 (`binder-commands/`)
 
@@ -99,20 +114,15 @@ binder_thread_write 是**唯一** Δ=0 完美对齐的路由，但:
 
 ---
 
-## 前进方向
+## 前进方向（更新后）
 
-### 短期 (可操作)
+### 短期（推荐优先）
 
-1. **完成全局 copy_from_user 扫描** — 这是唯一尚未穷尽的系统化方法
-2. **运行时二分搜索** — 使用 `PSELECT_SHIFT_OVERRIDE=-64..64` 验证理论值
-3. **研究 do_futex 的不同代码路径** — 是否存在产生不同栈深度的 futex 操作?
+1. **验证 qcedev_ioctl 栈覆盖路由** — 确认 `/dev/qcedev` 可访问性、逆向 ioctl 命令码、编写 NDK 探针
+2. **集成到 fops.c** — 将 pselect 栈覆盖替换为 qcedev_ioctl 路径
+3. **端到端测试** — GhostLock 触发 → qcedev_ioctl 覆盖 → configfs/ashmem fops 覆写 → pipe physrw → 提权
 
-### 中期 (需要深入)
+### 中期（备选）
 
-4. **探索非 configfs 内核写原语** — 寻找不依赖 fops 覆写的替代路径
-5. **研究 GhostLock UAF 的替代利用方式** — 不一定需要栈覆盖
-
-### 长期 (备选)
-
-6. **接受栈覆盖不可行，转向纯堆方法** — 但这需要一个独立的内核写原语
-7. **等待/寻找新漏洞** — 结合 GhostLock UAF 与其他漏洞
+4. **ipa3_ioctl** — 如果 qcedev_ioctl 不可用，作为备用路由
+5. **[EST] 偏移 pahole/IDA 验证** — TASK_PID_OFF, TASK_TASKS_OFF, CRED_SECURITY_OFF 等

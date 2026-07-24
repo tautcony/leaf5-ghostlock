@@ -1,3 +1,5 @@
+> **文档类型**: 过程文档（分析计划） | **状态**: ❌ 已过时 — 计划已执行完毕，精确结论见 [STACK_LAYOUT.md](STACK_LAYOUT.md) 和 [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md)，新栈覆盖路由见 [ghostlock-analysis/copy-from-user-scan/ANALYSIS.md](ghostlock-analysis/copy-from-user-scan/ANALYSIS.md) | **最后更新**: 2026-07-24
+
 # PSELECT_WAITER_WORD_SHIFT 适配计划 — Leaf5 4.19 内核
 
 **日期**: 2026-07-24  

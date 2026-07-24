@@ -1,3 +1,5 @@
+> **文档类型**: 结论文档 | **状态**: ✅ 有效 — 确定结论：do_select 不可用于 waiter 栈覆盖 | **最后更新**: 2026-07-24
+
 # do_select Buffer Analysis — GhostLock 分析
 
 **日期**: 2026-07-24

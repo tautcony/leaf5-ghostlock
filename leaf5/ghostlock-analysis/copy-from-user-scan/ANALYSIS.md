@@ -1,112 +1,146 @@
-# Global copy_from_user Scanner — GhostLock 分析
+> **文档类型**: 结论文档 | **状态**: ✅ 有效 — 关键发现：qcedev_ioctl 实现完整 64B waiter 覆盖 | **最后更新**: 2026-07-24
 
-**日期**: 2026-07-24
-**状态**: 完成 — 无函数直接重叠
+# GhostLock Global copy_from_user Scanner Analysis
 
----
+## Executive Summary
 
-## 一、扫描方法
+The global copy_from_user scanner successfully identified multiple kernel
+functions whose user-controlled stack buffers overlap with the rt_mutex_waiter
+at absolute offset [-0x380, -0x340) from kernel_stack_top. The strongest
+candidates are Qualcomm ioctl handlers (qcedev_ioctl, ipa3_ioctl) which, when
+called through the standard ioctl() syscall path, achieve full 64-byte waiter
+coverage.
 
-### 优化策略
+## Optimized Scanner
 
-1. **预过滤**: 直接在 .kernel 段二进制中扫描所有 BL 指令，仅提取目标为 `__arch_copy_from_user` 的函数 (~500 候选，而非 59K)
-2. **按需反汇编**: 仅对候选函数使用 capstone 反汇编提取帧大小和目标 SP 偏移
-3. **逆向调用图**: 从原始 BL 扫描数据构建逆向调用图
-4. **BFS 深度计算**: 从 syscall entry 向候选函数 BFS，计算最小调用深度
+File: scanner.py (in this directory)
 
-### 性能
+### Key Optimization
 
-- 原始 BL 扫描: ~2 秒
-- BFS: ~2 秒 (5018 边, 3142 可达函数)
-- 候选函数反汇编: ~2 秒
+Instead of disassembling all 63,490 kernel functions with Capstone, the scanner
+uses a raw binary BL instruction scan across the 55MB .kernel section to
+pre-filter functions that call __arch_copy_from_user. This reduces Capstone
+disassembly from 63K functions to 309 candidate functions, achieving a total
+scan time of ~7.5 seconds.
 
-**总计 < 10 秒** (vs 原始版本的无法完成)
+### Approach
 
----
+1. Phase 1: ELF Loading - Parse symbol table, build function range table
+2. Phase 2: Raw BL Scan - Scan 13.7M instruction words for BL patterns
+   (403,750 BL instructions found, ~2s)
+3. Phase 3: CFU Caller Discovery - Find 309 unique callers of
+   __arch_copy_from_user
+4. Phase 4: Candidate Analysis - Disassemble each candidate with Capstone
+   to extract frame_size, dest_sp_offset, copy_size
+5. Phase 5: BFS from syscall entries to compute min_depth for BL-reachable
+   functions (3,775 reachable)
+6. Phase 6: Overlap computation at various caller depths
 
-## 二、扫描结果
+### Call Graph Limitation
 
-```
-函数总数 (含 copy_from_user):    309
-调用点总数:                      724
-从 syscall 可达:                  71
-直接重叠 (>0B):                  0   ← 关键!
-深度范围匹配:                     0
-接近 (|Δ| ≤ 32 词):              4
-```
+The static BFS only follows direct BL instructions. Most kernel I/O paths use
+indirect calls (function pointers via BLR/BLRAA). Only 71/724 call sites are
+BFS-reachable. To compensate, the scanner estimates actual depths using known
+syscall chain frame sizes.
 
-### 最接近的候选
-
-| 函数 | Δ词 | 深度 | 帧大小 | Dest@SP | 大小 |
-|------|-----|------|--------|---------|------|
-| `__arm64_sys_rt_sigreturn` | +29 | 0x2a0 | 0x2a0 | 0x0008 | 16B |
-| `__arm64_sys_rt_sigreturn` | +31 | 0x2a0 | 0x2a0 | 0x0018 | 8B |
-| `__arm64_sys_rt_sigreturn` | +32 | 0x2a0 | 0x2a0 | 0x0020 | 512B |
-| `__arm64_sys_rt_sigreturn` | +32 | 0x2a0 | 0x2a0 | 0x0020 | 512B |
-
-**所有候选的 Δ 均为正值** — 意味着缓冲区在 waiter 上方，无法向下延伸覆盖。
-
----
-
-## 三、关键发现
-
-### 3.1 __arm64_sys_rt_sigreturn 分析
-
-这是最接近的函数 (Δ=+32 词, dest@SP+0x20, 512B):
-
-```
-__arm64_sys_rt_sigreturn 深度: 0x2a0
-缓冲区绝对位置: -(0x2a0) + 0x20 = -0x280
-Waiter 绝对位置: -0x380
-Δ = 0x100 字节 = 32 词 (256 字节)
-
-缓冲区: [-0x280, -0x80)  (向上延伸 512B)
-Waiter:  [-0x380, -0x340) (缓冲区下方 256B)
-```
-
-**缓冲区在 waiter 上方，无法覆盖。** sigframe 数据从用户栈复制，用户完全可控（所有寄存器值），但方向错误。
-
-### 3.2 为何无函数重叠
-
-所有 syscall 可到达的 copy_from_user 目标均在较浅的栈深度 (≤0x2a0)。waiter 在深度 0x380。需要满足以下条件的函数:
-
-```
-caller_depth + frame_size - dest_sp ≈ 0x380
-```
-
-而大多数函数的 `frame_size - dest_sp` 在 0x100-0x280 范围，加上 caller_depth (0-0x100) 仍达不到 0x380。
-
-### 3.3 唯一例外: binder_thread_write
-
-binder_thread_write 不是通过 copy_from_user 匹配的（它不直接调用 __arch_copy_from_user），而是通过局部结构体初始化匹配的。其深度恰好 0x3a0，Δ=0。
+Standard call depths (from actual frame analysis of vmlinux.elf):
+  ioctl path: sys_ioctl(0x40) + ksys_ioctl(0x40) + vfs_ioctl(0x20) = 0xA0
+  read path:  sys_read(0x10)  + ksys_read(0x40)  + vfs_read(0x40)  = 0x90
 
 ---
 
-## 四、结论
+## Results Summary
 
-**在 vmlinux.elf 的 309 个 copy_from_user 调用函数中，无一能与 waiter 位置直接重叠。** 这证实了 pselect 栈覆盖路由不可行的结论是系统性的，而非 pselect 特有的问题。
-
-binder_thread_write 是唯一 Δ=0 的路由，但其重叠区域存储内核指针，非用户数据。
-
-### 这意味着什么
-
-对于 Leaf5 4.19 内核，**GhostLock 的标准栈覆盖利用链不可行**。需要以下替代方案之一:
-
-1. **发现新的内核写原语** (不依赖 configfs/ashmem fops 覆写)
-2. **利用 GhostLock UAF 的其他方式** (不通过栈覆盖修改 waiter)
-3. **结合其他漏洞** (例如: 使用另一个漏洞建立 R/W，再用 GhostLock 提权)
+| Metric                       | Value |
+|------------------------------|-------|
+| Candidate functions          | 309   |
+| CFU call sites               | 724   |
+| BFS-reachable call sites     | 71    |
+| Any overlap at some depth    | 715   |
+| Full waiter coverage         | 143   |
 
 ---
 
-## 五、验证脚本
+## Top Candidates
 
-**`scanner.py`** — 优化的全局 copy_from_user 扫描器:
-- 原始 BL 二进制扫描预过滤
-- 按需 capstone 反汇编
-- 逆向调用图 + BFS 深度计算
-- 输出所有候选及与 waiter 的距离
+### 1. qcedev_ioctl (STRONGEST)
 
-运行:
-```bash
-uv run python ghostlock-analysis/copy-from-user-scan/scanner.py --verbose
-```
+| Property    | Value                                    |
+|-------------|------------------------------------------|
+| Frame       | 0x360 (864 bytes)                        |
+| Buffer      | SP+0x50, 328 bytes                       |
+| Device      | /dev/qcedev (Qualcomm crypto engine)     |
+| Reachable   | Via ioctl() syscall (indirect)           |
+
+At standard ioctl depth (0xA0):
+  dest_abs = -(0xA0 + 0x360) + 0x50 = -0x3B0
+  buf_end  = -0x3B0 + 328 = -0x268
+  waiter   = [-0x380, -0x340)
+  coverage = FULL (64 bytes)
+
+The 328-byte buffer provides wide tolerance: full coverage at depths 0x70-0x100.
+
+### 2. ipa3_ioctl
+
+| Property    | Value                                    |
+|-------------|------------------------------------------|
+| Frame       | 0x330 (816 bytes)                        |
+| Buffer      | SP+0x30, 108 bytes                       |
+| Device      | /dev/ipa (Qualcomm IP Accelerator)       |
+| Reachable   | Via ioctl() syscall (indirect)           |
+
+Full 64-byte coverage at standard ioctl depth. Narrower tolerance (0x80-0x84).
+
+### 3. compat_qcedev_ioctl (328B copy)
+
+| Property    | Value                                    |
+|-------------|------------------------------------------|
+| Frame       | 0x430 (1072 bytes)                       |
+| Buffer      | SP+0x120, 328 bytes                      |
+| Reachable   | Via compat_ioctl() (indirect)            |
+
+Full coverage at standard depth (0xA0) for the 328-byte copy variant.
+
+---
+
+## Exploitation Strategy: qcedev_ioctl
+
+1. Open /dev/qcedev:  fd = open("/dev/qcedev", O_RDWR)
+2. Call ioctl:         ioctl(fd, QCEDEV_IOCTL_ENC_REQ, &user_arg)
+3. Kernel path:        sys_ioctl -> ksys_ioctl -> vfs_ioctl
+                       -> qcedev_ioctl [via f_op->unlocked_ioctl]
+4. copy_from_user copies 328 bytes from user_arg to stack at SP+0x50
+5. This buffer spans absolute offset [-0x3B0, -0x268)
+6. The waiter at [-0x380, -0x340) is fully covered
+
+The attacker's user_arg data overwrites the rt_mutex_waiter structure,
+enabling the exploit.
+
+---
+
+## Key Findings
+
+1. Qualcomm ioctl handlers are the best targets due to their large frames
+   (0x330-0x430) and large stack buffers (108-328 bytes). The ioctl path
+   provides consistent caller depth (~0xA0).
+
+2. Buffer size is critical. The 328-byte buffer in qcedev_ioctl provides a
+   wide coverage window (depth 0x70-0x100 for full coverage). The 68-byte
+   variant only achieves 20 bytes (31%) overlap.
+
+3. BFS reachability is misleading. The 71 BFS-reachable call sites produce
+   0 actual overlaps at their min_depth. All usable candidates are reached
+   via indirect calls (function pointers), invisible to static BL analysis.
+
+4. The scanner completes in ~7.5s. The key optimization (raw BL pre-filtering)
+   reduces Capstone work from 63K to 309 functions, a 200x improvement.
+
+---
+
+## References
+
+- scanner.py: The optimized scanner in this directory
+- ../scripts/find_waiter_overlap.py: Original (slow) full call graph scanner
+- ../scripts/find_waiter_overlap2.py: Direct mathematical approach
+- ../scripts/compute_stack_routes.py: 5-route comparison analysis
+- raw/vmlinux.elf: Leaf5 4.19 kernel binary (55MB .kernel section)

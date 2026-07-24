@@ -1,3 +1,5 @@
+> **文档类型**: 过程文档（轮次交接） | **状态**: ✅ 有效（交接快照不可变，§10-14 的调试诊断已融入 VERIFICATION_REPORT.md） | **最后更新**: 2026-07-24
+
 # Leaf5 GhostLock 适配 — 轮次交接文档
 
 > 继 grok session 019f92aa-73b8-7c11-8a30-7713b7835e0d 的 offset 定位与 exploit 适配工作。

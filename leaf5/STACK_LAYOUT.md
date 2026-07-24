@@ -1,3 +1,5 @@
+> **文档类型**: 结论文档 | **状态**: ✅ 有效 | **最后更新**: 2026-07-24
+
 # Leaf5 Stack Layout — GhostLock 栈帧分析
 
 基于 2026-07-24 capstone 反汇编 `vmlinux.elf`。
