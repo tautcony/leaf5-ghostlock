@@ -165,7 +165,64 @@
   - compat ioctl 路径额外深度 0xA0 (超出 0x350, 可能过深)
 - uinput_ioctl_handler: 92B @ SP+0x60, 需 depth 0x2C0 (标准仅 0xA0, 差 0x220)
 
-## 未执行（本阶段）
+### 20. kgsl compat 深度精确验证 + /dev/qce 间接访问（2026-07-24 续6）
 
-- kgsl compat dispatch 链精确深度验证（确定能否命中 0x2E8-0x2F4 深度窗口）
-- NDK 编译 kgsl compat probe 验证设备访问
+**compat 深度纠正**:
+- 原估算 compat 额外 0xA0 深度有误：`security_file_ioctl`、`do_ioctl_trans`、`ioctl_preallocate` 为顺序调用，帧不累加
+- 实际 compat 到 kgsl_ioctl_helper 仅 0x100（regular 0xD0），差异 0x30
+
+**kgsl dispatch 链帧分析**:
+- kgsl_ioctl: 0x30, 仅调用 kgsl_ioctl_helper
+- kgsl_ioctl_helper: 0xD0, 内部调用 kgsl_ioctl_copy_in 等
+- kgsl_compat_ioctl: 0x30, blr x8 分派（部分命令有 _compat wrapper）
+- kgsl_ioctl_rb_issueibcmds: 0x70, 调用 create(0x40) → add_ibdesc(0x40) → add_ibdesc_list(0x90)
+- kgsl_ioctl_submit_commands: 0x70, 直接调用 add_ibdesc_list(0x90)（跳过 add_ibdesc）
+
+**关键发现 — TIF_32BIT 触发正确路径**:
+- `kgsl_drawobj_cmd_add_ibdesc_list` 中有两个 CFU 路径，由 `sp_el0[0] & (1<<22)` 即 `TIF_32BIT` 选择:
+  - TIF_32BIT 置位（32-bit 进程）: 16B CFU @ SP+0x28 (x29-0x18) ← **目标路径!**
+  - TIF_32BIT 未置位（64-bit 进程）: 32B CFU @ SP+0x08
+- CFU 前仅 `access_ok` 检查，无语义数据验证
+
+**精确深度计算**:
+```
+Compat 路径 via rb_issueibcmds (含中间帧):
+  __arm64_compat_sys_ioctl(0x40) + do_vfs_ioctl(0x90) + kgsl_compat_ioctl(0x30)
+  + kgsl_ioctl_helper(0xD0) + rb_issueibcmds(0x70)
+  + kgsl_drawobj_cmd_create(0x40) + kgsl_drawobj_cmd_add_ibdesc(0x40)
+  = D = 0x2C0 (caller depth above ibdesc_list)
+
+CFU 16B @ SP+0x28, frame=0x90:
+  abs = -(0x2C0 + 0x90) + 0x28 = -0x328
+  Buffer: [-0x328, -0x318)
+  Waiter TASK: [-0x320, -0x318)  ✅ 精确覆盖!
+  Waiter LOCK: [-0x318, -0x310)   保留脏数据
+
+覆盖映射:
+  ibdesc.gpuaddr [0:8]     → waiter +0x28 (pi_tree.rb_left) — 设为 0
+  ibdesc.sizedwords [8:16] → waiter +0x30 (TASK)            — fake task_struct
+```
+
+**/dev/qce 间接访问探索（8 种方法，全部阻塞）**:
+- Binder 服务: 17 进程有 drmrpc GID, SELinux 阻止跨域交互
+- 进程 fd 泄漏: 无任何进程当前打开 /dev/qce
+- SELinux 策略: 无法提取分析
+- setuid/setgid: **零** — 设备上无任何此类二进制
+- Unix socket/sysfs: 无相关接口
+- Keystore CLI: ✅ 可从 shell 使用，但走 /dev/qseecom (TEE)，不调 qcedev_ioctl
+- **新发现**: `/dev/dri/card0`, `/dev/dri/renderD128` 均为 0666
+
+### 21. 最终路线确认 + 文档更新（2026-07-24 续7）
+
+- ✅ **确认 kgsl compat ioctl 为唯一可行栈覆盖路由**
+- 设备: `/dev/kgsl-3d0` (0666 世界可读写)
+- 条件: 必须编译为 32-bit ARM 可执行文件以触发 TIF_32BIT
+- 覆盖: 16B → pi_tree.left (可控) + TASK 指针 (可控), LOCK (脏数据)
+- 更新 NEXT_STEPS.md: 路由矩阵、Phase 1-6 规划、偏移验证结果
+- 更新 target.h: 所有 [EST] → [BIN], 去除重复定义
+- 更新 PROCESS_LOG.md: 步骤 17-21
+
+## 下一步
+
+- Phase 1: 编写 32-bit NDK kgsl 探针，验证 /dev/kgsl-3d0 ioctl 可达性
+- Phase 2: 集成 kgsl compat 路径到 fops.c，端到端测试
