@@ -514,8 +514,8 @@ struct kgsl_ringbuffer_issueibcmds_compat {
 | 所有 flag 组合测试 | ❌ | 9种（0/GL/CL/VK/NO_GMEM/PREAMBLE等）全部 EINVAL |
 | GPU 状态 | ⚠️ | `gpubusy=0 0`（空闲/挂起），可能需初始化序列 |
 
-**根因**: GPU 处于 suspend 状态，kgsl 驱动在 context 创建前需要设备激活序列。
-**影响**: CFU 路径在 context validation 之后，无有效 context 则永远无法到达 CFU。
+**更新 (2026-07-25)**: 解锁后 GPU 已唤醒（gpubusy 非零），但 context 创建仍全部 EINVAL。GETPROPERTY/SETPROPERTY 也失败。**与电源状态无关**，可能是设备 GPU 子系统处于有限功能模式（e-ink 设备特性）。
+**影响**: CFU 路径在 context validation 之后，无有效 context 则永远无法到达 CFU。**KGSL 路线可能在此设备上不可行。**
 
 ---
 

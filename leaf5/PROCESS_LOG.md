@@ -317,3 +317,12 @@ CFU 16B @ SP+0x28, frame=0x90:
 - 从 kheaders `msm_kgsl.h` 确认 struct 布局正确: `{uint32_t flags; uint32_t drawctxt_id;}`
 - **根因推测**: GPU 处于 suspend/低功耗状态，kgsl 驱动在 context 创建前需要设备初始化序列
 - **阻塞性质**: 核心阻塞 — CFU 路径需要有效 GPU context 否则提前返回 EINVAL
+
+### 29. 解锁后重新验证（2026-07-25）
+
+- 用户解锁设备后重新测试 GPU context 创建
+- GPU 状态变化: `gpubusy=0 0` → `gpubusy=340121 1019065`（GPU 已唤醒）
+- **结果**: 所有 DRAWCTXT_CREATE flag 组合仍然 EINVAL
+- GETPROPERTY: 所有 type 值返回 ENOTTY（无 handler 注册）
+- SETPROPERTY: 返回 ENODEV（设备未就绪）
+- **结论**: GPU context 创建失败与锁屏/电源状态无关，设备 GPU 子系统可能处于有限功能模式
