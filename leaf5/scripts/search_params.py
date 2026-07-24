@@ -30,8 +30,18 @@ def run(cmd, timeout=10, capture=True):
         p = subprocess.run(cmd, shell=True, capture_output=capture,
                            text=True, timeout=timeout)
         return p.returncode, p.stdout, p.stderr
-    except subprocess.TimeoutExpired:
-        return -1, "", "timeout"
+    except subprocess.TimeoutExpired as e:
+        # Python 3.11+: TimeoutExpired carries partial stdout/stderr.
+        # Don't discard it — the exploit may have printed diagnostics
+        # before the timeout (e.g. "DIAG: best match …" then hung).
+        out = ""
+        err = "timeout"
+        if capture:
+            if e.stdout is not None:
+                out = e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout
+            if e.stderr is not None:
+                err = e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr
+        return -1, out, err
 
 
 def adb_push():
@@ -90,18 +100,20 @@ def is_success(r):
 
 
 def build():
-    print("Building exploit via Docker...")
+    print("Building preload + tests via Docker...")
     script = EXPLOIT_DIR / "docker-build.sh"
     ret, _, err = run(
-        f"bash {script} TARGET_DIR=targets/onyx-leaf5",
+        f"bash {script} TARGET_DIR=targets/onyx-leaf5 tests",
         timeout=300, capture=False)
     if ret != 0:
         print(f"Build failed (exit={ret})")
         return False
-    if not PRELOAD_SO.exists():
-        print(f"Build did not produce {PRELOAD_SO}")
-        return False
-    print(f"  Built: {PRELOAD_SO} ({PRELOAD_SO.stat().st_size} bytes)")
+    for f in [PRELOAD_SO] + [EXPLOIT_DIR / "test-programs" / t
+                             for t in ["test_futex_hash", "test_mm_leak"]]:
+        if not f.exists():
+            print(f"Missing: {f}")
+            return False
+        print(f"  {f.name}: {f.stat().st_size} bytes")
     return True
 
 
