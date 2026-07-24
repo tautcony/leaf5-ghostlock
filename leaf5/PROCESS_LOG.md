@@ -274,3 +274,46 @@ CFU 16B @ SP+0x28, frame=0x90:
 - **两条前进路径**:
   A. 64位构建 + `personality(PER_LINUX32)` 仅切换 kgsl ioctl 为32位
   B. 完成32位移植（需全面审计 size_t/uintptr_t → uint64_t）
+
+### 25. Path A 验证: personality(PER_LINUX32) 测试（2026-07-24 续11）
+
+- 编写 `test_personality.c`: 64-bit ARM 程序，测试 personality(PER_LINUX32) 对 KGSL ioctl dispatch 的影响
+- **结论: ❌ personality(PER_LINUX32) 无法触发 compat ioctl 路径**
+  - `personality()` 设置 `current->personality`，但不设置 `TIF_32BIT`
+  - `kgsl_drawobj_cmd_add_ibdesc_list` 中的路径选择由 `TIF_32BIT` (thread_info.flags bit 22) 控制
+  - 所有 ioctl 在有/无 PER_LINUX32 时返回相同 errno，dispatch 行为无差异
+  - **Path A 不可行！**
+
+### 26. 32-bit 构建修复（2026-07-24 续12）
+
+- **修复 MAP_NORESERVE**: `kernelsnitch.h:345` — 改为 `MAP_ANON|MAP_PRIVATE`（移除 MAP_NORESERVE，ARM32 不支持）
+- **修复 PROT_NONE 双步 mmap**: 改为单步 `PROT_READ|PROT_WRITE` mmap，移除 sub-mmap 循环
+- **修复 FUTEX_SZ**: ARM32 从 512MB→128MB（避免地址空间不足）
+- **修复 64-bit 地址截断**:
+  - `kernelsnitch_cleanup` 返回类型: `size_t` → `ks_addr_t`
+  - `kernelsnitch_param`、`kernelsnitch` 返回类型: `size_t` → `ks_addr_t`
+  - `prepare_kernel_page`、`prepare_good_kernel_page` 返回类型: `uintptr_t` → `uint64_t`
+  - `page_base`、`fake_lock`、`fake_task` 等全局变量: `uintptr_t` → `uint64_t`
+  - `(size_t)-1` 哨兵比较修正为 `(ks_addr_t)-1`
+- **修复 sed 引入的代码破坏**: 之前的 sed 命令打乱了 `kernelsnitch_setup` 函数中的初始化顺序，`total_futexes` 在使用前未初始化。手动重写恢复正确顺序。
+- ⚠️ ghostlock32 仍在 `kernelsnitch_setup` 中崩溃（SIGSEGV），crash 点在 mmap 调用附近
+- 未抵达 `kernelsnitch_setup` 的 debug 输出，说明 crash 发生在第一行 mmap 或之前
+
+### 27. 最小化 32-bit GhostLock + KGSL PoC（2026-07-24 续13）
+
+- 编写 `ghostlock32_minimal.c`: 跳过 Kernelsnitch，使用硬编码内核地址
+- **设备测试结果**:
+  - ✅ **FUTEX 操作完全正常**: `FUTEX_LOCK_PI` 成功，`FUTEX_WAIT_REQUEUE_PI` 正确阻塞
+  - ✅ **GhostLock 竞态触发成功**: `FUTEX_CMP_REQUEUE_PI` 返回 `ret=1`（1个 waiter 被 requeue）
+  - ✅ **KGSL ioctl dispatch 正常**: `/dev/kgsl-3d0` open 成功，ioctl 到达 handler（EINVAL，非 ENOTTY）
+  - ❌ **GPU context 创建失败**: `DRAWCTXT_CREATE` 所有 flag 组合均返回 EINVAL
+  - ❌ **CFU 路径未到达**: 因 context validation 在 CFU 之前，EINVAL 提前返回
+- **无内核 panic**: ioctl 调用安全返回，无 oops/panic
+
+### 28. GPU Context 创建深入排查（2026-07-24 续14）
+
+- 测试所有 `KGSL_CONTEXT_*` flag 组合（GL/CL/VK/NO_GMEM_ALLOC/PREAMBLE）：全部 EINVAL
+- GPU 状态: `gpubusy=0 0`（空闲/挂起）
+- 从 kheaders `msm_kgsl.h` 确认 struct 布局正确: `{uint32_t flags; uint32_t drawctxt_id;}`
+- **根因推测**: GPU 处于 suspend/低功耗状态，kgsl 驱动在 context 创建前需要设备初始化序列
+- **阻塞性质**: 核心阻塞 — CFU 路径需要有效 GPU context 否则提前返回 EINVAL

@@ -23,17 +23,8 @@
 ## 核心指令集
 
 ### 编译规则
-```bash
-# 必须使用 make clean && make
-make clean && make NDK=/usr/local/Caskroom/android-ndk/29/AndroidNDK14206865.app/Contents/NDK
-
-# Makefile 不追踪 .h 文件变化，修改 .h 后必须 clean 再 make
-```
-
-### 偏移验证规则
-- 所有内核偏移必须通过 IDA output.elf 验证
-- 不信任仓库默认值
-- 必须 pahole + IDA 双重验证
+python依赖使用uv进行挂历
+ndk编译使用docker
 
 ### 提交规范
 - 每次修改后 git commit

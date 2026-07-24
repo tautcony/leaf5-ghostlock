@@ -4,11 +4,22 @@
 
 **目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13
 **漏洞**: CVE-2026-43499 (GhostLock)
-**当前阶段**: 栈覆盖路由确认（kgsl compat ioctl），进入 exploit 集成验证阶段
+**当前阶段**: 栈覆盖路由确认（kgsl compat ioctl），GPU context 创建阻塞，待突破
 
 ---
 
 ## 一、当前状态总览
+
+### 1.0 本次会话进展 (2026-07-24 续)
+
+| 发现 | 状态 | 影响 |
+|------|------|------|
+| personality(PER_LINUX32) 不触发 TIF_32BIT | ❌ 废案 | Path A 不可行 |
+| 32-bit FUTEX 操作正常 | ✅ | GhostLock 竞态可在 32-bit 触发 |
+| 32-bit KGSL ioctl dispatch 正常 | ✅ | 命令分派到 handler |
+| GhostLock 竞态触发成功 | ✅ | FUTEX_CMP_REQUEUE_PI ret=1 |
+| GPU context 创建失败 | ❌ 阻塞 | CFU 路径无法到达 |
+| 32-bit 构建修复（地址截断等） | ⚠️ 部分 | 编译通过但 Kernelsnitch 仍崩溃 |
 
 ### 1.1 已完成（不可逆）
 
@@ -133,13 +144,53 @@ Waiter 字段映射:
 ## 三、后续阶段规划
 
 ```
-Phase 1 (P0)  kgsl compat 探针验证           ████████████ 预计 1-2h
-Phase 2 (P0)  Exploit 集成 + 端到端测试       ████████████ 预计 3-5h
-Phase 3 (P1)  内核 R/W 原语建立               ████████████ 预计 2-3h
+Phase 0 (P0)  GPU Context 创建突破            ████████████ 🔴 当前阻塞
+Phase 1 (P0)  kgsl compat 探针验证             ████████████ ✅ 已完成
+Phase 2 (P0)  Exploit 集成 + 端到端测试        ████████████ ⏸️ 等待 Phase 0
+Phase 3 (P1)  内核 R/W 原语建立                ████████████ 预计 2-3h
 Phase 4 (P1)  提权链 + SELinux bypass          ████████████ 预计 2-3h
 Phase 5 (P2)  偏移精校 + 边界情况              ████████████ ✅ 已完成
 Phase 6 (P2)  Stage1 浏览器验证                ████████████ 预计 1-2h
 ```
+
+---
+
+## 三-A、Phase 0: GPU Context 创建突破 🔴 P0
+
+> **目标**: 找到创建有效 GPU context 的方法，使 RB_ISSUEIBCMDS ioctl 能通过 context validation 到达 CFU 路径
+> **预计**: 2-4 小时
+> **阻塞**: 整个 KGSL 栈覆盖路线
+
+### 方案 0A: GPU 设备激活
+
+```bash
+# 尝试写 sysfs 唤醒 GPU
+echo "on" > /sys/class/kgsl/kgsl-3d0/pwrctrl  # 如果存在
+# 或通过 SET_PROPERTY ioctl
+```
+
+- 研究 kgsl 驱动的电源管理接口
+- 尝试通过 sysfs 或 ioctl 唤醒 GPU
+- 参考 CAF msm-4.19 kgsl 驱动代码
+
+### 方案 0B: 绕过 context validation
+
+- 反汇编 `kgsl_ioctl_rb_issueibcmds_compat` wrapper，寻找绕过 context lookup 的路径
+- 检查是否有未使用的 ioctl 命令可以不经过 context validation 到达 CFU
+- 研究 `SUBMIT_COMMANDS` handler，确认其 context validation 位置
+
+### 方案 0C: 伪造 context 对象
+
+- 通过 heap spray 在 GPU context 哈希表中注入伪造的 context 条目
+- 需要先获得内核 R/W 原语（鸡生蛋问题）
+
+### 方案 0D: 备选 CFU 路由重新评估
+
+如果 GPU context 问题无法解决，重新检查全路由扫描中之前被排除的路由:
+- uinput: 92B @ SP+0x60, 需额外 0x220 深度
+- setsockopt: 264B @ SP+0x20, 需额外 0x1B0 深度
+- binder: 检查是否有未被分析的 CFU 路径
+- `/dev/dri/renderD128` (0666): DRM ioctl CFU 扫描
 
 ---
 
@@ -373,12 +424,14 @@ adb shell dmesg -w | grep -E 'panic|oops|BUG|GhostLock|waiter|kgsl'
 
 | 风险 | 概率 | 影响 | 缓解措施 |
 |------|------|------|---------|
+| **GPU context 创建失败** | **高→已确认** | **致命** | 方案 0A-0D（见 Phase 0） |
 | 32-bit 进程被 SELinux 限制 ioctl | 低 | 高 | shell 上下文已验证 kgsl-3d0 可 RW |
-| kgsl cmd 结构体布局错误 | 中 | 中 | 参考 msm-4.19 CAF 源码还原结构体 |
+| kgsl cmd 结构体布局错误 | 低→已验证 | 中 | kheaders msm_kgsl.h 确认布局正确 |
 | 脏数据 lock/tree 导致 PI 崩溃 | 低 | 中 | waiter 区域在 compat 帧深度外，脏数据原封不动 |
 | TASK 8B 不足以控制 PI chain walk | 低 | 中 | 仅需控制 task 指针重定向到 fake task_struct |
-| GhostLock 竞态成功概率低 | 低 | 中 | 自适应重试策略 |
-| compat 路径 dispatch 链与预期不同 | 中 | 中 | kgsl_compat_ioctl 分发表部分条目用非 compat 处理器 |
+| GhostLock 竞态成功概率低 | 低→已确认 | 中 | 最小 PoC 已验证 ret=1，竞态可稳定触发 |
+| compat 路径 dispatch 链与预期不同 | 低→已验证 | 中 | 测试确认 dispatch 正常，ioctl 到达 handler |
+| 32-bit Kernelsnitch 稳定性 | 中 | 中 | 可跳过 Kernelsnitch，使用硬编码地址 |
 
 ---
 
@@ -386,12 +439,14 @@ adb shell dmesg -w | grep -E 'panic|oops|BUG|GhostLock|waiter|kgsl'
 
 | 里程碑 | 预计耗时 | 累计 | 判定标准 |
 |--------|---------|------|---------|
-| M1: kgsl 探针可用 | 1-2h | 1-2h | 32-bit ioctl 成功到达内核 |
-| M2: 栈覆盖端到端验证 | 3-5h | 4-7h | GhostLock→kgsl覆盖→fops覆写 |
-| M3: 内核 R/W 原语 | 2-3h | 6-10h | pipe physrw 读写内核内存 |
-| M4: 提权到 root | 2-3h | 8-13h | uid=0, SELinux permissive |
+| M1: kgsl 探针可用 | 1-2h | 1-2h | ✅ 32-bit ioctl 成功到达内核 |
+| M2: 栈覆盖端到端验证 | 3-5h | 4-7h | 🔄 GhostLock ✅ / KGSL dispatch ✅ / GPU ctx ❌ |
+| M3: 内核 R/W 原语 | 2-3h | 6-10h | ⏸️ 等待 M2 |
+| M4: 提权到 root | 2-3h | 8-13h | ⏸️ 等待 M3 |
 | M5: 偏移精校 | ✅ | - | 已完成 |
-| M6: 浏览器链验证 | 1-2h | 9-15h | Stage1+Stage2 完整链 |
+| M6: 浏览器链验证 | 1-2h | 9-15h | ⏸️ 等待 M4 |
+
+**当前阻塞**: GPU context 创建（M2 子任务），需要找到激活 GPU 或绕过 context validation 的方法。
 
 **总计估计**: 9-15 小时（含已完成 Phase 5）
 
@@ -435,6 +490,46 @@ struct kgsl_ringbuffer_issueibcmds_compat {
 
 **探针**: `leaf5/probes/kgsl_probe/kgsl_probe.c`
 **编译**: Docker `ghostlock-build`, `armv7a-linux-androideabi33-clang -static`
+
+---
+
+### 十二-B、Path A 验证结果 ❌ (2026-07-24)
+
+| 检查项 | 状态 | 详情 |
+|--------|------|------|
+| personality(PER_LINUX32) 设置成功 | ✅ | syscall 返回旧值 0x0，设置后读回 0x8 |
+| personality 触发 compat dispatch | ❌ | 所有 ioctl errno 与无 personality 完全一致 |
+| TIF_32BIT 由 personality 设置 | ❌ | personality 只设 current->personality，不设 thread_info.flags |
+
+**结论**: Path A（64-bit + personality）**不可行**。TIF_32BIT 只在 exec 32-bit ELF 时由内核设置，无法从用户态修改。
+
+---
+
+### 十二-C、GPU Context 创建阻塞 ❌ (2026-07-24)
+
+| 检查项 | 状态 | 详情 |
+|--------|------|------|
+| DRAWCTXT_CREATE dispatch | ✅ | 到达 handler，返回 EINVAL（非 ENOTTY） |
+| struct 布局正确 | ✅ | 与 kheaders `msm_kgsl.h` 一致：`{uint32_t flags; uint32_t id;}` |
+| 所有 flag 组合测试 | ❌ | 9种（0/GL/CL/VK/NO_GMEM/PREAMBLE等）全部 EINVAL |
+| GPU 状态 | ⚠️ | `gpubusy=0 0`（空闲/挂起），可能需初始化序列 |
+
+**根因**: GPU 处于 suspend 状态，kgsl 驱动在 context 创建前需要设备激活序列。
+**影响**: CFU 路径在 context validation 之后，无有效 context 则永远无法到达 CFU。
+
+---
+
+### 十二-D、32-bit GhostLock 验证 ✅ (2026-07-24)
+
+| 检查项 | 状态 | 详情 |
+|--------|------|------|
+| FUTEX_LOCK_PI | ✅ | 正常获取 PI 锁 |
+| FUTEX_WAIT_REQUEUE_PI | ✅ | 正确阻塞等待 |
+| FUTEX_CMP_REQUEUE_PI (GhostLock trigger) | ✅ | ret=1，1个 waiter 被成功 requeue |
+| KGSL ioctl dispatch | ✅ | open 成功、ioctl 到达 handler |
+| 内核 panic | ✅ 无 | 测试全程无 oops/panic |
+
+**结论**: 32-bit ARM 上的 GhostLock 竞态触发和 KGSL ioctl 分派均正常工作。唯一阻塞点在 GPU context 创建。
 
 ---
 
