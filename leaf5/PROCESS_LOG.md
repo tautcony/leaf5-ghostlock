@@ -241,4 +241,23 @@ CFU 16B @ SP+0x28, frame=0x90:
 - **Compat wrapper 逆向**: 反汇编 `kgsl_ioctl_rb_issueibcmds_compat`
   - 输入 struct: +0x00 drawctxt_id, +0x04 flags, +0x08 ibdesc_addr(32-bit ptr), +0x0c timestamp, +0x10 numibs
 - **EINVAL 根因**: `cbz x0, error` — GPU context lookup 失败（exploit 需先创建 context）
-- **待处理**: IOCTL_KGSL_DRAWCTXT_CREATE 创建有效 GPU context，或找无需 context 的 ioctl 路径
+### 23. Phase 2 exploit 集成（2026-07-24 续9）
+
+- **架构决策**: 编译为 32-bit ARM 独立 PIE（非 LD_PRELOAD），直接触发 compat ioctl
+- **新增文件**: `exploit/src/kgsl_route.c`
+  - `do_kgsl_fake_lock_route()`: open /dev/kgsl-3d0 → create GPU context → build ibdesc → ioctl
+  - `install_embedded_wallpaper()` stub（32-bit 无汇编支持）
+  - `main()` 入口包装 `run_exploit()`
+- **修改文件**:
+  - `main.c`: `do_pselect_fake_lock_route()` → `do_kgsl_fake_lock_route()`
+  - `common.h`: 添加 `do_kgsl_fake_lock_route()`, `kgsl_cleanup()` 声明
+  - `Makefile`: 新增 `arm32`/`arm32-pie` 构建目标，添加 kgsl_route.c
+  - `target.h`: 新增 KGSL ioctl 宏、ibdesc 布局、路由选择
+  - `kernelsnitch/timeutils.h`: ARM32 `__arm__` 回退（clock_gettime 替代 cntvct_el0）
+- **Docker 编译**: `armv7a-linux-androideabi33-clang -pie` → ghostlock32 (111K)
+- **设备测试结果**:
+  - ✅ 启动成功: pid=16784 uid=2000, label=onyx_leaf5_gv2.027
+  - ✅ KASLR base 正确: direct-map base=ffffff8080080000 slide=0
+  - ✅ init_task=ffffff800b81c180 正确
+  - ⚠️ mmap MAP_NORESERVE 失败 (EINVAL) — 32-bit 兼容性问题，待修复
+- **待修复**: MAP_NORESERVE 在 ARM32 上可能不支持，需改用 MAP_ANONYMOUS
