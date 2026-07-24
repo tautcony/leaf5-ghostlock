@@ -30,3 +30,5 @@ Thumbs.db
 # Kernel extracted files
 vmlinux*
 boot*.img
+
+*.bin
