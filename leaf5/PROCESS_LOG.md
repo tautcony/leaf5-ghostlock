@@ -224,5 +224,21 @@ CFU 16B @ SP+0x28, frame=0x90:
 
 ## 下一步
 
-- Phase 1: 编写 32-bit NDK kgsl 探针，验证 /dev/kgsl-3d0 ioctl 可达性
 - Phase 2: 集成 kgsl compat 路径到 fops.c，端到端测试
+
+### 22. Phase 1 kgsl 探针验证（2026-07-24 续8）
+
+- 编写 32-bit ARM NDK 探针 `leaf5/probes/kgsl_probe/kgsl_probe.c`
+- Docker 编译: `armv7a-linux-androideabi33-clang -static` → ELF 32-bit ARM EABI5
+- **设备验证结果**:
+  - ✅ `/dev/kgsl-3d0` open O_RDWR 成功 (fd=3)
+  - ✅ RB_ISSUEIBCMDS (`0xc0200910`): EINVAL (已分派，非 ENOTTY)
+  - ✅ SUBMIT_COMMANDS (`0xc060093d`): EINVAL
+  - ✅ GPU_AUX_COMMAND (`0xc0140957`): EINVAL
+  - ✅ 9/9 测试命令均为 EINVAL（已分派），无 ENOTTY
+- **ioctl 命令码提取**: 从 vmlinux kgsl_ioctl_funcs 表确认 type=0x09
+  - 表位于 0xffffff80099d2540，每项 16B，索引 = `cmd & 0xFF`
+- **Compat wrapper 逆向**: 反汇编 `kgsl_ioctl_rb_issueibcmds_compat`
+  - 输入 struct: +0x00 drawctxt_id, +0x04 flags, +0x08 ibdesc_addr(32-bit ptr), +0x0c timestamp, +0x10 numibs
+- **EINVAL 根因**: `cbz x0, error` — GPU context lookup 失败（exploit 需先创建 context）
+- **待处理**: IOCTL_KGSL_DRAWCTXT_CREATE 创建有效 GPU context，或找无需 context 的 ioctl 路径

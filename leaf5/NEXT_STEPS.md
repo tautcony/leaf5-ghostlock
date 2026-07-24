@@ -410,5 +410,33 @@ adb shell dmesg -w | grep -E 'panic|oops|BUG|GhostLock|waiter|kgsl'
 
 ---
 
+### 十二-A、Phase 1 验证结果 ✅ (2026-07-24)
+
+| 检查项 | 状态 | 详情 |
+|--------|------|------|
+| `/dev/kgsl-3d0` world-RW | ✅ | open O_RDWR 成功 (fd=3) |
+| 32-bit ARM compat 运行 | ✅ | ELF 32-bit ARM EABI5, armeabi-v7a |
+| ioctl 命令码正确 | ✅ | type=0x09 从 vmlinux kgsl_ioctl_funcs 确认 |
+| RB_ISSUEIBCMDS dispatch | ✅ | `0xc0200910` → EINVAL (分派到 handler) |
+| SUBMIT_COMMANDS dispatch | ✅ | `0xc060093d` → EINVAL |
+| GPU_AUX_COMMAND dispatch | ✅ | `0xc0140957` → EINVAL |
+| EINVAL 根因 | — | GPU context 未创建（exploit 会先创建 context） |
+
+**Compat struct 布局**（从 wrapper 反汇编还原）:
+```c
+struct kgsl_ringbuffer_issueibcmds_compat {
+    uint32_t drawctxt_id;    // +0x00
+    uint32_t flags;          // +0x04
+    uint32_t ibdesc_addr;    // +0x08 — 32-bit user pointer
+    uint32_t timestamp;      // +0x0c — writeback
+    uint32_t numibs;         // +0x10 — count (>= 1)
+};
+```
+
+**探针**: `leaf5/probes/kgsl_probe/kgsl_probe.c`
+**编译**: Docker `ghostlock-build`, `armv7a-linux-androideabi33-clang -static`
+
+---
+
 *最后更新: 2026-07-24*
-*基于路由分析 2026-07-24: qcedev_ioctl 阻塞 → kgsl compat ioctl 确认为可行路由*
+*Phase 1 已验证 → Phase 2 exploit 集成*
