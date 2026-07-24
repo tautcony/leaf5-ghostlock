@@ -4,7 +4,7 @@
 
 **目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13
 **漏洞**: CVE-2026-43499 (GhostLock)
-**当前阶段**: KGSL 路线确定不可行（GPU context 需要专有驱动初始化），待转向备选 CFU 路由
+**当前阶段**: GPU context 创建已突破 ✅，命令提交待解决 🔄，KGSL 路线重新激活
 
 ---
 
@@ -514,19 +514,19 @@ struct kgsl_ringbuffer_issueibcmds_compat {
 
 ---
 
-### 十二-D、KGSL 路线确定性结论 ❌ (2026-07-25)
+### 十二-D、KGSL 路线状态：Context 创建已突破 ✅ (2026-07-25)
 
-**KGSL 路线在当前执行上下文（shell, uid=2000）下不可行。**
+**突破**: `KGSL_CONTEXT_PREAMBLE (0x10) | KGSL_CONTEXT_NO_GMEM_ALLOC (0x02) = 0x12`
 
-经过全面分析：
-- GPU 硬件完全正常（Adreno 619v1, GLES 3.2 / Vulkan 1.1 活跃）
-- 其他进程已成功创建 4 个 GPU context（glLoadingCount=3, vkLoadingCount=1）
-- SET_PROPERTY 可配置 MMU/中断/位宽等 8 项属性
-- 但 DRAWCTXT_CREATE 在设置所有可用属性后仍返回 EINVAL
-- 逆向工程确认：handler 中 `[device+0x3d8]+0xa0` 间接调用返回错误
-- 根因：GPU 固件加载和核心上电由专有用户态驱动（libEGL_adreno.so）完成，无法通过原始 ioctl 复制
+- freedreno 源码揭示关键信息："Modern kernels require BOTH PREAMBLE and NO_GMEM_ALLOC"
+- `DRAWCTXT_CREATE(flags=0x12)` → **ctx_id=7 ✅ 创建成功！**
+- 此前所有失败均因未同时设置这两个标志位
 
-**这不是硬件/权限/SELinux 问题，而是驱动架构决定的限制。**
+**当前阻塞**: 命令提交（RB_ISSUEIBCMDS / SUBMIT_COMMANDS）
+- Context 有效但 `idr_find` 可能找不到（或 refcount 检查失败）
+- GPUMEM_ALLOC_ID 也失败（即使是正确的 0x10000000 flags）
+- 可能原因: PREAMBLE context 需首次 preamble IB 提交后才能完全激活
+- 下一步: 寻找正确的命令提交流程 / 测试 64-bit native 路径
 
 ### 十二-E、32-bit GhostLock 验证 ✅ (2026-07-24)
 

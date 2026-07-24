@@ -378,3 +378,30 @@ GPU context 创建需要专有用户态驱动（libEGL_adreno.so / vulkan.adreno
 应用级执行上下文和专有 GPU 库支持。
 
 **建议**: 转向备选 CFU 路由（DRM render node 被 SELinux 阻止，需评估 uinput/setsockopt/binder 等方案）。
+
+### 31. GPU Context 创建突破！（2026-07-25）
+
+**关键发现**: `KGSL_CONTEXT_PREAMBLE (0x10) | KGSL_CONTEXT_NO_GMEM_ALLOC (0x02) = 0x12`
+
+- freedreno 源码揭示: "Modern kernels require BOTH PREAMBLE and NO_GMEM_ALLOC to be set"
+- 之前分别尝试了 0x02 和 0x10，但从未组合 0x12！
+- **context 创建成功**: `DRAWCTXT_CREATE(flags=0x12) → ctx_id=7 ✅`
+- 同样成功的组合: `0x13` (SAVE_GMEM|NO_GMEM|PREAMBLE), `0x00100012` (TYPE_GL|...)
+
+**KGSL 路线状态更新**: Context 创建不再是阻塞点！但命令提交仍有问题。
+
+### 32. 命令提交与内存分配的排查（2026-07-25）
+
+- RB_ISSUEIBCMDS: 有效 context (id=7) 下仍 EINVAL
+  - 所有 ibdesc 参数组合（gpuaddr=0/有效/sizedwords=0/1/N）均失败
+  - 所有 flags 组合均失败
+- SUBMIT_COMMANDS: 同样 EINVAL
+- GPUMEM_ALLOC_ID: 所有 flags 组合 EINVAL（包括正确的 USE_CPU_MAP=0x10000000）
+- 反汇编分析: 两个 handler 均调用 `idr_find` + `refcount_inc_not_zero_checked` 查找 context
+  - EINVAL 可能来自: (1) idr_find 未找到 context (2) refcount 为零 (3) 后续验证失败
+- 待确定: context 是否被正确添加到 IDR 树？PREAMBLE 上下文是否需要首次提交后完全激活？
+
+**GPUMEM flags 纠正**:
+- `KGSL_MEMFLAGS_USE_CPU_MAP = 0x10000000` (bit 28, 不是 0x1000!)
+- `KGSL_MEMTYPE_SHIFT = 8`
+- `KGSL_MEMALIGN_SHIFT = 16`
