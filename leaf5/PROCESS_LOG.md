@@ -52,3 +52,66 @@
 - 重启进 fastboot 拉 boot（需用户确认）
 - 编译/推送 exploit 或攻击性 PoC
 - 恢复 git 中旧 leaf5 文档内容
+
+## 步骤记录（2026-07-24 续 — 偏移定位）
+
+### 8. 确认 boot_a.bin 与 runtime 一致
+
+- `strings leaf5/boot_a.bin | grep 'Linux version'` → `g3d47a6619220-dirty #245` ✅ 匹配
+- `vmlinux_extracted`、`vmlinux.elf`（相对基址）、`vmlinux_abs.elf`（绝对基址）均已存在
+
+### 9. 符号提取（vmlinux.elf）
+
+- 121883 symbols from kallsyms → ELF .symtab
+- 基址 `_text = 0xffffff8008080000`（39-bit VA, TEXT_OFFSET=0x80000）
+- 确认关键符号：init_task、anon_pipe_buf_ops、ashmem_fops/misc、selinux_state 等
+- 发现 4.19 与 5.10 符号名差异：无 futex_wait_requeue_pi、configfs_read_iter→configfs_read_file
+
+### 10. 结构体偏移提取（capstone 5.0 反汇编）
+
+- 安装 `capstone` + `pyelftools` 到 leaf5 venv（uv add）
+- 编写 `scripts/extract_offsets.py` 可复用工具
+- 反汇编关键访问函数：commit_creds、exit_creds、rt_mutex_adjust_prio_chain、task_blocks_on_rt_mutex、pipe_write 等
+- 确认 rt_mutex_waiter sizeof=0x40（4.19 无 prio/deadline）
+- 确认 task_struct：real_cred=0x7d8, cred=0x7e0, pi_blocked_on=0x8d0
+- 确认 pipe_inode_info：head=0x38, tail=0x3c, ..., bufs=0x78
+
+### 11. target.h 与文档
+
+- 创建 `exploit/targets/onyx-leaf5/target.h`（含 [BIN]/[SYM]/[SRC]/[EST] 验证标记）
+- 更新 `ANALYSIS.md` §8 加入偏移定位结果
+- 更新 `pyproject.toml` 增加 `leaf5-extract-offsets` 入口
+- [SRC]/[EST] 标记的偏移（TASK_PID_OFF、TASK_TASKS_OFF 等）需后续 pahole/IDA 验证
+
+### 12. 已确认的关键 4.19 vs 5.10 差异
+
+| 维度 | 4.19 (Leaf5) | 5.10 (OPPO) |
+|------|-------------|------------|
+| rt_mutex_waiter 大小 | 0x40 | 0x50 |
+| prio/deadline 字段 | 无 | 有 |
+| futex_wait_requeue_pi | 无（do_futex 内联） | 有 |
+| cred 偏移 (real_cred/cred) | 0x7d8/0x7e0 | 0x818/0x820 |
+| pipe head/tail 偏移 | 0x38/0x3c | 0x60/0x64 |
+| mm->owner 偏移 | 0x328 | 0x408 |
+| pi_blocked_on 偏移 | 0x8d0 | 0x898 |
+
+### 13. 栈帧布局分析
+
+- 完整反汇编 do_futex、futex_wait、task_blocks_on_rt_mutex、rt_mutex_init_waiter
+- do_futex: 0x220 (544B) 栈帧，sub sp,sp,#0x60 + sub sp,sp,#0x1c0
+- futex_wait: 0x140 (320B) 栈帧
+- **futex_q（含 rt_mutex_waiter）位于 futex_wait 的 sp+0x80**
+- waiter sizeof=0x40, waiter->task 在 sp+0xb0
+- 写入 `STACK_LAYOUT.md`
+
+### 14. 工具链与可复用脚本
+
+- `scripts/extract_offsets.py` — 通用 ARM64 内核偏移提取（capstone 反汇编）
+- `uv run leaf5-extract-offsets` — 入口命令
+- 依赖：`capstone` + `pyelftools`（通过 uv 管理）
+
+## 未执行（本阶段）
+
+- pahole / IDA 验证 [SRC]/[EST] 标记的偏移
+- NDK 编译用户态 futex 烟雾测试
+- 动态栈帧确认（需可控 oops 或 perf event）

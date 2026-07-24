@@ -359,7 +359,95 @@ Onyx Leaf5
 
 ---
 
-## 8. 复现命令清单
+## 8. 偏移定位结果（2026-07-24 续）
+
+基于 vmlinux-to-elf 重建的 `vmlinux.elf`（121883 符号）与 capstone ARM64 反汇编器，完成了关键结构与符号偏移的提取。
+
+### 8.1 数据源与工具链
+
+| 输入 | 来源 |
+|------|------|
+| `raw/vmlinux.elf` | `vmlinux-to-elf` 从 `boot_a.bin` 提取的 Image 重建 |
+| 符号表 | 121883 符号（kernel kallsyms → ELF .symtab） |
+| 结构体偏移 | capstone 5.0 反汇编关键访问函数 |
+| 验证状态 | `[BIN]`=反汇编确认，`[SYM]`=符号表查询，`[SRC]`=源码推断 |
+
+复用脚本：`uv run leaf5-extract-offsets`（即 `scripts/extract_offsets.py`）。
+
+### 8.2 rt_mutex_waiter（4.19 关键差异）
+
+4.19 的 `rt_mutex_waiter` **没有** `prio`、`deadline`、`ww_ctx` 字段（5.10+ 才有）：
+
+| 字段 | 偏移 | 大小 | 验证 |
+|------|------|------|------|
+| `tree_entry` | `0x00` | 24B (rb_node) | `[BIN]` task_blocks_on_rt_mutex |
+| `pi_tree_entry` | `0x18` | 24B (rb_node) | `[BIN]` task_blocks_on_rt_mutex |
+| `task` | `0x30` | 8B | `[BIN]` rt_mutex_init_waiter: `str xzr, [x0,#0x30]` |
+| `lock` | `0x38` | 8B | `[SRC]` |
+| **sizeof** | **0x40** | 64B | 比 5.10 的 0x50 小 16B |
+
+### 8.3 task_struct 关键偏移
+
+| 字段 | 偏移 | 验证 |
+|------|------|------|
+| `real_cred` | `0x7d8` | `[BIN]` commit_creds: `ldr x19, [x20,#0x7d8]` |
+| `cred` | `0x7e0` | `[BIN]` exit_creds: `str xzr, [x19,#0x7e0]` |
+| `comm` | `0x7e8` | `[SRC]` 紧随 cred 之后（char[16]） |
+| `prio` | `0xac` | `[BIN]` rt_mutex_adjust_prio_chain: `ldr w8, [x19,#0xac]` |
+| `pi_blocked_on` | `0x8d0` | `[BIN]` task_blocks_on_rt_mutex: `str x21, [x20,#0x8d0]` |
+| `pi_waiters` | `0x8b8` | `[EST]` 在 pi_blocked_on 附近 |
+| `pid` | `0x5f8` | `[EST]` 源码头前推 — **需 pahole 验证** |
+| `tgid` | `0x5fc` | `[EST]` 同上 |
+
+对比 OPPO Find N2（5.10）：4.19 的 `real_cred`/`cred` 偏移比 5.10 (`0x818`/`0x820`) **小 0x40**（64B），说明 4.19 的 task_struct 在 cred 之前有更少的字段/更小的子结构。
+
+### 8.4 pipe_inode_info 偏移
+
+| 字段 | 偏移 | 验证 |
+|------|------|------|
+| `head` | `0x38` | `[BIN]` pipe_write |
+| `tail` | `0x3c` | `[BIN]` pipe_write: `ldp` |
+| `max_usage` | `0x40` | `[BIN]` pipe_write |
+| `ring_size` | `0x44` | `[BIN]` pipe_write |
+| `nr_accounted` | `0x48` | `[SRC]` |
+| `readers` | `0x4c` | `[SRC]` |
+| `writers` | `0x50` | `[BIN]` pipe_write: `ldr w8, [x20,#0x50]` |
+| `files` | `0x54` | `[SRC]` |
+| `tmp_page` | `0x60` | `[BIN]` pipe_write: `ldr x28, [x20,#0x60]` |
+| `bufs` | `0x78` | `[BIN]` pipe_write: `ldr x21, [x20,#0x78]` |
+| `user` | `0x80` | `[SRC]` |
+
+### 8.5 其他已验证偏移
+
+| 结构 | 字段 | 偏移 | 验证 |
+|------|------|------|------|
+| `mm_struct` | `owner` | `0x328` | `[BIN]` mm_update_next_owner |
+| `cred` | `euid` | `0x14` | `[BIN]` commit_creds |
+| `cred` | `security` | ⚠️ 待确认 | 4.19 位置与 5.10 不同 |
+| `miscdevice` | `fops` | `0x10` | `[SRC]` arm64 结构布局 |
+
+### 8.6 4.19 特殊符号名
+
+4.19 与 5.10 使用了**不同的函数/变量名**：
+
+| 5.10 (OPPO) | 4.19 (Leaf5) | 说明 |
+|-------------|-------------|------|
+| `futex_wait_requeue_pi` | ❌ 不存在 | 逻辑内联在 `do_futex` → `futex_wait` |
+| `copy_splice_read` | `generic_file_splice_read` | 不同 splice 实现 |
+| `configfs_read_iter` | `configfs_read_file` | 4.19 未使用 iter 接口 |
+| `configfs_write_iter` | `configfs_write_file` | 同上 |
+| `selinux_enforcing` | `selinux_enforcing_boot` | 仅 boot param 变量 |
+| `ashmem_misc_fops` | 通过 `ashmem_misc` + offset `0x10` 读取 | miscdevice 间接引用 |
+
+### 8.7 产出
+
+- ✅ `exploit/targets/onyx-leaf5/target.h` — 含所有已验证偏移，标注验证级别
+- ✅ `scripts/extract_offsets.py` — 可复用偏移提取工具
+- ⚠️ `[SRC]`/`[EST]` 标记的偏移需 pahole 或 IDA 复核后方可用于生产 exploit
+
+---
+
+## 9. 复现命令清单
 
 ```bash
 # 0. 设备

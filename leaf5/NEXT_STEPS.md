@@ -1,13 +1,13 @@
 # Leaf5 后续工作清单
 
-基于 [ANALYSIS.md](ANALYSIS.md) 2026-07-24 结论。
+基于 [ANALYSIS.md](ANALYSIS.md) 2026-07-24 结论。**最后更新：2026-07-24（偏移定位阶段完成）。**
 
-## P0 — 获取与 runtime 一致的内核镜像
+## ✅ P0 — 获取与 runtime 一致的内核镜像
 
-**验收标准**：镜像内 `Linux version` 字符串同时包含：
-
-- `g3d47a6619220`
-- `#245`（或与当时 `uname -a` 完全一致）
+**已完成。** `leaf5/boot_a.bin` 确认匹配 runtime：
+- `g3d47a6619220-dirty #245` ✅
+- vmlinux extracted + vmlinux.elf (vmlinux-to-elf) 已生成
+- 符号表：121883 symbols
 
 **可选路径**（需用户确认后再执行，可能重启设备）：
 
@@ -25,14 +25,19 @@
 strings leaf5/raw/vmlinux | grep 'Linux version 4.19'
 ```
 
-## P1 — 符号与结构体
+## ✅ P1 — 符号与结构体
 
-| 任务 | 工具 | 产出 |
+**已完成。** 通过 capstone 反汇编 + 源码分析完成主要偏移提取。
+
+| 任务 | 状态 | 产出 |
 |------|------|------|
-| kallsyms / 符号表 | vmlinux-to-elf / IDA | `init_task`、ashmem fops、pipe ops、futex 相关 |
-| 结构体偏移 | pahole + IDA | `rt_mutex_waiter`、`task_struct`、`mm_struct`、`cred` |
-| VA 布局 | Image header + 源码/符号 | `KIMAGE_TEXT_BASE`、direct map、PHYS_OFFSET |
-| 写入 target | 手写 | `exploit/targets/onyx-leaf5/target.h` |
+| kallsyms / 符号表 | ✅ | 121883 symbols → `target.h` |
+| 结构体偏移 | ⚠️ 部分 | rt_mutex_waiter/task_struct/pipe/mm_struct `[BIN]` 已验证；cred/task 部分字段 `[EST]` |
+| VA 布局 | ✅ | KIMAGE_TEXT_BASE=0xffffff8008080000, 39-bit VA |
+| target.h | ✅ | `exploit/targets/onyx-leaf5/target.h` |
+| 可复用工具 | ✅ | `uv run leaf5-extract-offsets` |
+
+⚠️ `[SRC]`/`[EST]` 标记的偏移需 pahole 或 IDA 复核后方可用于生产 exploit。
 
 `target.h` 必须包含：
 

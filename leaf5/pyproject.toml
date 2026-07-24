@@ -3,11 +3,15 @@ name = "leaf5-analysis"
 version = "0.1.0"
 description = "Leaf5 (Onyx) GhostLock adaptation analysis tooling"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "capstone>=5.0.9",
+    "pyelftools>=0.33",
+]
 
 [project.scripts]
 leaf5-collect = "scripts.collect_device:main"
 leaf5-summarize = "scripts.summarize_config:main"
+leaf5-extract-offsets = "scripts.extract_offsets:main"
 
 [build-system]
 requires = ["hatchling"]
