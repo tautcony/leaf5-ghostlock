@@ -405,3 +405,59 @@ GPU context 创建需要专有用户态驱动（libEGL_adreno.so / vulkan.adreno
 - `KGSL_MEMFLAGS_USE_CPU_MAP = 0x10000000` (bit 28, 不是 0x1000!)
 - `KGSL_MEMTYPE_SHIFT = 8`
 - `KGSL_MEMALIGN_SHIFT = 16`
+
+### 33. 64-bit 原生路径对比 + 内存模型发现（2026-07-25 续）
+
+**64-bit vs 32-bit 对比**:
+- DRAWCTXT_CREATE(0x12): 64-bit ✅ / 32-bit ✅ — 两者均成功
+- SETPROPERTY: 64-bit ✅ / 32-bit ✅
+- GPUMEM_ALLOC (nr=0x20): 64-bit EOPNOTSUPP (95) — **不支持**
+- GPUMEM_ALLOC_ID: 64-bit EINVAL / 32-bit EINVAL
+- RB_ISSUEIBCMDS: 64-bit EINVAL / 32-bit EINVAL — 一致
+- SUBMIT_COMMANDS: 64-bit EINVAL / 32-bit EINVAL — 一致
+
+**新发现**:
+- `GPUMEM_ALLOC` (nr=0x20): **EOPNOTSUPP** — 此 ioctl 在此设备上不被支持
+- `MAP_USER_MEM`: **EOPNOTSUPP** — 不支持
+- `mmap(/dev/kgsl-3d0)`: **EINVAL** — 无法对 kgsl 设备做 mmap
+- `SETPROP(CONTEXT_PROPERTY, ctx=7)`: **✅ 成功!** — 可以设置上下文属性
+- 所有 GPUOBJ_* / SYNCSOURCE ioctl 均返回 EINVAL 或 ENOTTY
+
+**内存模型分析**:
+- Adreno 619 使用 RGMU (Reduced Graphics Management Unit)
+- 传统 GPUMEM_ALLOC/MAP_USER_MEM 在此设备上编译为返回 EOPNOTSUPP
+- GPU 内存管理可能通过 ION/DMA-BUF 接口（需要应用级上下文）
+- 这解释了为何 freedreno 的 GPUMEM_ALLOC_ID 也无法使用
+
+**当前状态**: Context 创建 ✅ | 命令提交 ❌ | 内存分配 ❌(EOPNOTSUPP)
+
+### 34. RB_ISSUEIBCMDS 架构差异发现（2026-07-25 续）
+
+**关键发现**: 64-bit 进程可以成功调用 RB_ISSUEIBCMDS，32-bit 进程不行！
+
+| 进程架构 | ioctl cmd | 结果 |
+|-----------|-----------|------|
+| 64-bit | 0xc0140910 (compat) | ✅ ret=0 SUCCESS |
+| 64-bit | 0xc0200910 (native) | ❌ EINVAL |
+| 32-bit | 0xc0140910 (compat) | ❌ EINVAL |
+| 32-bit | 0xc0200910 (native) | ❌ EINVAL |
+
+**分析**:
+- 64-bit 进程调用 compat 命令成功（所有 flags 组合）
+  - 原因: 从 64-bit 进程，ioctl 直接进入 regular handler（无 compat wrapper）
+  - 20字节 compat struct 被当作 32字节 native struct 读取
+  - ibdesc_addr (4B) 和 timestamp (4B) 组合成 64-bit 指针
+  - 巧合: timestamp=0 → 指针恰好有效
+- 32-bit 进程调用同一命令失败
+  - 原因: compat wrapper (`kgsl_ioctl_rb_issueibcmds_compat`) 做额外验证
+  - 可能 context lookup 或 struct validation 失败
+
+**GhostLock + KGSL 端到端**:
+- GhostLock 触发 ✅ (CMP_REQUEUE_PI ret=1)
+- KGSL context 创建 ✅ (0x12 标志)
+- KGSL 命令提交: 32-bit ❌ / 64-bit ✅ (但有结构体布局问题)
+- 内核未崩溃: 64-bit 路径的 CFU 位置与 GhostLock waiter 位置可能不匹配
+
+**下一步需求**:
+- 修复 32-bit compat 路径的 RB_ISSUEIBCMDS（定位 compat wrapper 中 EINVAL 来源）
+- 或找到从 32-bit 进程绕过 compat wrapper 调用 regular handler 的方法
