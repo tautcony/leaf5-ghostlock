@@ -1,0 +1,10 @@
+# Don't send the entire repo into Docker build context
+.git
+*.img
+*.bin
+leaf5/raw/
+*.log
+**/build/
+**/__pycache__
+*.pyc
+.DS_Store
