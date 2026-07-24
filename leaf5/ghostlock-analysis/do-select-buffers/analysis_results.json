@@ -1,0 +1,35 @@
+{
+  "kernel": "4.19.157 (Leaf5/TabBoox)",
+  "waiter_abs_offset": -896,
+  "waiter_relative_to_do_select": {
+    "start": 592,
+    "end": 656,
+    "start_hex": "SP+0x250"
+  },
+  "do_select": {
+    "frame_size": 880,
+    "fp_offset": 0,
+    "max_sp_offset": 248,
+    "num_unique_sp_accesses": 29
+  },
+  "chain": [
+    {
+      "name": "__arm64_sys_pselect6",
+      "frame_size": 160,
+      "cumulative_depth": 160
+    },
+    {
+      "name": "core_sys_select",
+      "frame_size": 448,
+      "cumulative_depth": 608
+    },
+    {
+      "name": "do_select",
+      "frame_size": 880,
+      "cumulative_depth": 1488
+    }
+  ],
+  "overlapping_sp_offsets": [],
+  "cfu_overlaps": [],
+  "verdict": "NEGATIVE - No buffer at waiter position"
+}
