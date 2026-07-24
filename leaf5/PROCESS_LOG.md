@@ -130,8 +130,42 @@
 - 支持 `--json` 输出供脚本消费
 - 支持 `--elf` / `--config` 参数指定非默认路径
 
+### 17. [EST] 偏移批量验证（2026-07-24 续3）
+
+- 通过 capstone 反汇编验证所有 [EST] 标记的偏移
+- **CORRECTED**: TASK_PID_OFF: 0x5f8→0x630, TASK_TGID_OFF: 0x5fc→0x634, TASK_SECCOMP_OFF: 0x8e8→0x888, CRED_SECURITY_OFF: 0x80→0x78
+- **CORRECTED**: FAKE_TASK_PI_LOCK_OFF: 0x8a0→0x8ac, FAKE_TASK_PI_TOP_TASK_OFF: 0x8c0→0x8c8
+- **CONFIRMED**: TASK_TASKS_OFF (0x530), TASK_PI_WAITERS_OFF (0x8b8), PIPE_INODE_INFO_STRUCT_SIZE (0x88), TASK_NORMAL_PRIO_OFF (0xb4)
+- 更新 target.h 所有验证标记为 [BIN]
+
+### 18. qcedev_ioctl 逆向 + 路由验证（2026-07-24 续4）
+
+- 从 vmlinux.elf 反汇编 qcedev_ioctl，提取 ioctl 命令码:
+  - `0xc148870a` = QCEDEV_IOCTL_ENC_REQ (328B @ SP+0x50, _IOC(RW, 0x87, 0x0a, 328))
+  - `0xc044870b` = QCEDEV_IOCTL (68B, _IOC(RW, 0x87, 0x0b, 68))
+- 确认 frame=0x360, 9个 CFU 调用点, 328B 在 depth 0x80-0x100 下 FULL waiter 覆盖
+- **关键阻塞**: /dev/qcedev 不存在! 实际设备节点为 /dev/qce (234:0)
+- /dev/qce 权限: 0660 system:drmrpc + SELinux vendor_qce_device
+- Shell (uid=2000) 不在 drmrpc(1026) 组, Firefox (uid=10127) 也不在
+- **qcedev_ioctl 路由被设备权限阻塞**
+
+### 19. 全路由扫描分析（2026-07-24 续5）
+
+- 重新运行全局 CFU 扫描器: 309 函数/724 CFU 调用点
+- 在标准 ioctl 深度 (0x80-0x100) 下 FULL 覆盖仅 4 函数:
+  1. qcedev_ioctl — /dev/qce 权限阻塞
+  2. ipa3_ioctl — /dev/ipa 不存在
+  3. lo_ioctl — /dev/loop-control root-only
+  4. __arm64_sys_rt_sigreturn — 天然深度仅~0, 需额外 0x100 深度
+- 分析 12+ 备选路由: 全部因深度不足或权限问题阻塞
+- **kgsl compat ioctl 为最有希望备选**:
+  - /dev/kgsl-3d0 世界可读写 (crw-rw-rw-)
+  - kgsl_drawobj_cmd_add_ibdesc_list: 16B @ SP+0x28, 覆盖 TASK+LOCK
+  - 需要 caller depth 0x2E8, 标准深度 ~0x2A0 (差 0x48)
+  - compat ioctl 路径额外深度 0xA0 (超出 0x350, 可能过深)
+- uinput_ioctl_handler: 92B @ SP+0x60, 需 depth 0x2C0 (标准仅 0xA0, 差 0x220)
+
 ## 未执行（本阶段）
 
-- pahole / IDA 验证 [SRC]/[EST] 标记的偏移
-- NDK 编译用户态 futex 烟雾测试
-- 动态栈帧确认（需可控 oops 或 perf event）
+- kgsl compat dispatch 链精确深度验证（确定能否命中 0x2E8-0x2F4 深度窗口）
+- NDK 编译 kgsl compat probe 验证设备访问
