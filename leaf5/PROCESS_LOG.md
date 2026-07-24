@@ -326,3 +326,55 @@ CFU 16B @ SP+0x28, frame=0x90:
 - GETPROPERTY: 所有 type 值返回 ENOTTY（无 handler 注册）
 - SETPROPERTY: 返回 ENODEV（设备未就绪）
 - **结论**: GPU context 创建失败与锁屏/电源状态无关，设备 GPU 子系统可能处于有限功能模式
+
+### 30. GPU 子系统深度分析与确定性结论（2026-07-25）
+
+**GPU 硬件确认**:
+- 型号: Adreno 619v1 (Qualcomm Snapdragon SM6350/Lagoon)
+- 最大时钟: 565 MHz
+- 驱动包: `com.qualcomm.qti.gpudrivers.lito.api30`
+- GLES 版本: 3.2 (196610), Vulkan 版本: 1.1 (4198400)
+- 状态: **完全正常** — 3个GL上下文 + 1个VK上下文已由其他进程创建
+- GPU 活跃: `gpubusy=340121 1019065`
+
+**compat SET_PROPERTY 成功列表**:
+- ✅ MMU_ENABLE (0x6) — MMU 已启用
+- ✅ INT_WAITS (0x7) — 中断等待已配置
+- ✅ UCHE_GMEM_VADDR (0x13) — GMEM 虚拟地址已设置
+- ✅ DEVICE_BITNESS (0x18) — 设备位数已配置
+- ✅ MIN_ACCESS_LEN (0x1A) — 最小访问长度
+- ✅ UBWC_MODE (0x1B) — UBWC 模式
+- ✅ DEVICE_QTIMER (0x20) — QTimer 已配置
+- ✅ SPEED_BIN (0x25) — 速度分级
+
+**仍然失败的关键操作**:
+- ❌ DEVICE_POWER (0x3) → ENODEV — GPU 电源管理不可用（可能由 GMU 固件管理）
+- ❌ PWRCTRL (0xE) → ENODEV — 电源控制接口不存在
+- ❌ PWR_CONSTRAINT (0x12) → ENODEV
+- ❌ QUERY_CAPABILITIES (0x27) → EINVAL
+- ❌ mmap(SHARED) → EINVAL — 无法映射设备内存
+- ❌ DRAWCTXT_CREATE → EINVAL — **持续失败**
+
+**逆向工程发现**:
+- `kgsl_ioctl_drawctxt_create` 入口通过间接调用检查设备状态:
+  `[device+0x3d8] → [table+0xa0] → blr x8 → IS_ERR 检查`
+- 该间接调用失败导致 EINVAL
+- 设备偏移 0x3d8 有 101 处代码引用，多数有 NULL 检查
+- adreno_a6xx_gpudev 表中的函数指针在运行时赋值（非静态初始化）
+
+**根本原因分析**:
+- GPU context 创建需要完整的 GPU 初始化序列，包括：
+  1. GMU/RGMU 固件加载（由专有用户态驱动处理）
+  2. GPU 核心上电序列
+  3. 命令缓冲区映射（需要成功的 mmap）
+- 这些步骤由 `libEGL_adreno.so` / `vulkan.adreno.so` 在应用初始化时完成
+- 从 shell 通过原始 ioctl 调用无法复制此序列
+- compat (32-bit) 路径与 native (64-bit) 路径行为一致，均失败
+
+**⚠️ 确定性结论: KGSL 路线在当前执行上下文（shell, uid=2000）下不可行。**
+
+GPU context 创建需要专有用户态驱动（libEGL_adreno.so / vulkan.adreno.so）的初始化序列，
+无法通过原始 ioctl 从 shell 完成。这不意味着 KGSL 路线从根本上不可能，但需要
+应用级执行上下文和专有 GPU 库支持。
+
+**建议**: 转向备选 CFU 路由（DRM render node 被 SELinux 阻止，需评估 uinput/setsockopt/binder 等方案）。

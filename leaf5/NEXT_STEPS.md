@@ -4,7 +4,7 @@
 
 **目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13
 **漏洞**: CVE-2026-43499 (GhostLock)
-**当前阶段**: 栈覆盖路由确认（kgsl compat ioctl），GPU context 创建阻塞，待突破
+**当前阶段**: KGSL 路线确定不可行（GPU context 需要专有驱动初始化），待转向备选 CFU 路由
 
 ---
 
@@ -155,42 +155,37 @@ Phase 6 (P2)  Stage1 浏览器验证                █████████�
 
 ---
 
-## 三-A、Phase 0: GPU Context 创建突破 🔴 P0
+## 三-A、Phase 0: GPU Context 创建突破 ❌ 已关闭
 
-> **目标**: 找到创建有效 GPU context 的方法，使 RB_ISSUEIBCMDS ioctl 能通过 context validation 到达 CFU 路径
-> **预计**: 2-4 小时
-> **阻塞**: 整个 KGSL 栈覆盖路线
+> **结论**: KGSL 路线在当前执行上下文下**不可行**
+> **原因**: GPU 固件加载和核心初始化需要专有用户态驱动（libEGL_adreno.so / vulkan.adreno.so），无法通过原始 ioctl 复制
+> **验证**: 8 项 SET_PROPERTY 成功后 DRAWCTXT_CREATE 仍返回 EINVAL
 
-### 方案 0A: GPU 设备激活
+**已排除的方案**:
+- ❌ 方案 0A: GPU 设备激活 — SET_PROPERTY 成功配置 MMU/UBWC/QTimer 等，但不足以创建 context
+- ❌ 方案 0B: 绕过 context validation — 逆向确认 `[device+0x3d8]+0xa0` 间接调用是必须的
+- ❌ 方案 0C: 伪造 context 对象 — 需要先有内核 R/W（循环依赖）
+- ❌ personality(PER_LINUX32) — 不设置 TIF_32BIT
 
-```bash
-# 尝试写 sysfs 唤醒 GPU
-echo "on" > /sys/class/kgsl/kgsl-3d0/pwrctrl  # 如果存在
-# 或通过 SET_PROPERTY ioctl
-```
+**唯一可行的 KGSL 路线**: 在应用级上下文（APK）中使用专有 GPU 库完成初始化后调用 ioctl。
+但这引入了新的复杂度（需要浏览器 exploit 提供应用级代码执行）。
 
-- 研究 kgsl 驱动的电源管理接口
-- 尝试通过 sysfs 或 ioctl 唤醒 GPU
-- 参考 CAF msm-4.19 kgsl 驱动代码
+---
 
-### 方案 0B: 绕过 context validation
+## 三-B、下一步: 备选 CFU 路由 🔴 P0
 
-- 反汇编 `kgsl_ioctl_rb_issueibcmds_compat` wrapper，寻找绕过 context lookup 的路径
-- 检查是否有未使用的 ioctl 命令可以不经过 context validation 到达 CFU
-- 研究 `SUBMIT_COMMANDS` handler，确认其 context validation 位置
+KGSL 路线关闭后，需要重新评估所有备选栈覆盖路由:
 
-### 方案 0C: 伪造 context 对象
+| 优先级 | 路由 | CFU | 阻塞 | 可行性 |
+|--------|------|-----|------|--------|
+| P0 | uinput `/dev/uinput` | 92B@SP+0x60 | 需额外 0x220 深度 | 待分析 |
+| P0 | setsockopt | 264B@SP+0x20 | 需额外 0x1B0 深度 | 待分析 |
+| P0 | binder | 未知 | 需 CFU 扫描 | 待分析 |
+| P1 | DRM `/dev/dri/renderD128` | 未知 | SELinux 阻止 open (EACCES) | 低 |
+| P1 | DRM `/dev/dri/card0` | 未知 | SELinux 阻止 open (EACCES) | 低 |
 
-- 通过 heap spray 在 GPU context 哈希表中注入伪造的 context 条目
-- 需要先获得内核 R/W 原语（鸡生蛋问题）
-
-### 方案 0D: 备选 CFU 路由重新评估
-
-如果 GPU context 问题无法解决，重新检查全路由扫描中之前被排除的路由:
-- uinput: 92B @ SP+0x60, 需额外 0x220 深度
-- setsockopt: 264B @ SP+0x20, 需额外 0x1B0 深度
-- binder: 检查是否有未被分析的 CFU 路径
-- `/dev/dri/renderD128` (0666): DRM ioctl CFU 扫描
+**当前推荐**: 优先分析 **uinput** 和 **setsockopt** 路由，因为它们不依赖 GPU 硬件初始化，
+也不需要特殊的 SELinux 权限（shell 可访问 socket/input 设备）。
 
 ---
 
@@ -519,7 +514,21 @@ struct kgsl_ringbuffer_issueibcmds_compat {
 
 ---
 
-### 十二-D、32-bit GhostLock 验证 ✅ (2026-07-24)
+### 十二-D、KGSL 路线确定性结论 ❌ (2026-07-25)
+
+**KGSL 路线在当前执行上下文（shell, uid=2000）下不可行。**
+
+经过全面分析：
+- GPU 硬件完全正常（Adreno 619v1, GLES 3.2 / Vulkan 1.1 活跃）
+- 其他进程已成功创建 4 个 GPU context（glLoadingCount=3, vkLoadingCount=1）
+- SET_PROPERTY 可配置 MMU/中断/位宽等 8 项属性
+- 但 DRAWCTXT_CREATE 在设置所有可用属性后仍返回 EINVAL
+- 逆向工程确认：handler 中 `[device+0x3d8]+0xa0` 间接调用返回错误
+- 根因：GPU 固件加载和核心上电由专有用户态驱动（libEGL_adreno.so）完成，无法通过原始 ioctl 复制
+
+**这不是硬件/权限/SELinux 问题，而是驱动架构决定的限制。**
+
+### 十二-E、32-bit GhostLock 验证 ✅ (2026-07-24)
 
 | 检查项 | 状态 | 详情 |
 |--------|------|------|
