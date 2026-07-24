@@ -261,3 +261,16 @@ CFU 16B @ SP+0x28, frame=0x90:
   - ✅ init_task=ffffff800b81c180 正确
   - ⚠️ mmap MAP_NORESERVE 失败 (EINVAL) — 32-bit 兼容性问题，待修复
 - **待修复**: MAP_NORESERVE 在 ARM32 上可能不支持，需改用 MAP_ANONYMOUS
+
+### 24. 最小化 PoC + 32-bit 移植进展（2026-07-24 续10）
+
+- 编写 `kgsl_ghostlock_poc.c`: GhostLock + KGSL 最小验证
+  - 设备运行无崩溃（竞态未触发 + GPU context 创建失败）
+  - FUTEX_CMP_REQUEUE_PI 返回 EINVAL — 32-bit 参数传递差异
+  - DRAWCTXT_CREATE ioctl 返回 EINVAL — compat struct 布局待确认
+- **32-bit exploit 编译**: ghostlock32 119K PIE，编译通过，启动正确
+  - 修复: FUTEX_SZ 512MB, futex_hash uint64_t, ks_addr_t typedef, timeutils ARM32 fallback
+  - ⚠️ `prepare_good_kernel_page()` 崩溃 — Kernelsnitch 64位地址在32位下截断
+- **两条前进路径**:
+  A. 64位构建 + `personality(PER_LINUX32)` 仅切换 kgsl ioctl 为32位
+  B. 完成32位移植（需全面审计 size_t/uintptr_t → uint64_t）
