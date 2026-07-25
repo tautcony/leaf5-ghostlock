@@ -27,7 +27,7 @@ python依赖使用uv进行挂历
 ndk编译使用docker
 
 ### 提交规范
-- 每次修改后 git commit
+- 每次修改后，更新文档并 git commit
 - Commit message 格式: `<type>: <description>`
 
 ### 通信规范

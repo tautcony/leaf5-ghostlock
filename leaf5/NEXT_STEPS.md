@@ -514,33 +514,108 @@ struct kgsl_ringbuffer_issueibcmds_compat {
 
 ---
 
-### 十二-D、KGSL 路线状态：Context 创建已突破 ✅ (2026-07-25)
+### 十二-D、KGSL 路线状态汇总 (2026-07-25 最终)
 
-**突破**: `KGSL_CONTEXT_PREAMBLE (0x10) | KGSL_CONTEXT_NO_GMEM_ALLOC (0x02) = 0x12`
+| 阶段 | 状态 | 详情 |
+|------|------|------|
+| GPU context 创建 | ✅ | flags=0x12 (PREAMBLE\|NO_GMEM_ALLOC) |
+| 64-bit RB_ISSUEIBCMDS | ✅ | compat cmd 0xc0140910 成功 (走 fallback handler ext+0xc0) |
+| 64-bit CFU 位置 | ❌ | 32B @ SP+0x08 = abs -0x2C8, waiter task 在 -0x320, 差 88B |
+| 32-bit SUBMIT_COMMANDS | ✅ | 所有大小 (20-56) 均成功, CFU 到达 |
+| 32-bit SUBMIT_COMMANDS CFU 位置 | ❌ | abs -0x2A8, waiter task 在 -0x320, 差 120B |
+| 32-bit RB_ISSUEIBCMDS | ❌ | **所有方向/大小/布局均 EINVAL** |
+| 32-bit RB_ISSUEIBCMDS CFU 位置 | ✅ (理论) | abs -0x328, waiter task 在 -0x320, **完美重叠 8B!** |
 
-- freedreno 源码揭示关键信息："Modern kernels require BOTH PREAMBLE and NO_GMEM_ALLOC"
-- `DRAWCTXT_CREATE(flags=0x12)` → **ctx_id=7 ✅ 创建成功！**
-- 此前所有失败均因未同时设置这两个标志位
+**CFU 位置对比**:
+```
+RB_ISSUEIBCMDS    CFU 16B @ [-0x328, -0x318)  →  waiter TASK @ -0x320 ✅ 完美!
+SUBMIT_COMMANDS   CFU 16B @ [-0x2A8, -0x298)  →  waiter TASK @ -0x320 ❌ 差 0x78
+64-bit native     CFU 32B @ [-0x2C8, -0x2A8)  →  waiter TASK @ -0x320 ❌ 差 0x58
+```
 
-**当前阻塞**: 命令提交（RB_ISSUEIBCMDS / SUBMIT_COMMANDS）
-- Context 有效但 `idr_find` 可能找不到（或 refcount 检查失败）
-- GPUMEM_ALLOC_ID 也失败（即使是正确的 0x10000000 flags）
-- 可能原因: PREAMBLE context 需首次 preamble IB 提交后才能完全激活
-- 下一步: 寻找正确的命令提交流程 / 测试 64-bit native 路径
+**核心矛盾**: 唯一 CFU 位置完美的路径 (32-bit RB_ISSUEIBCMDS) 被 compat wrapper 阻塞。
 
-### 十二-E、32-bit GhostLock 验证 ✅ (2026-07-24)
+### 十二-E、Compat wrapper 逆向与 swap workaround (2026-07-25)
 
-| 检查项 | 状态 | 详情 |
-|--------|------|------|
-| FUTEX_LOCK_PI | ✅ | 正常获取 PI 锁 |
-| FUTEX_WAIT_REQUEUE_PI | ✅ | 正确阻塞等待 |
-| FUTEX_CMP_REQUEUE_PI (GhostLock trigger) | ✅ | ret=1，1个 waiter 被成功 requeue |
-| KGSL ioctl dispatch | ✅ | open 成功、ioctl 到达 handler |
-| 内核 panic | ✅ 无 | 测试全程无 oops/panic |
+**kgsl_ioctl_rb_issueibcmds_compat 反汇编分析**:
+```c
+// 读取 compat struct (20B):
+w8  = *(uint32_t*)(arg+0x00)   // drawctxt_id
+w10 = *(uint32_t*)(arg+0x04)   // flags  
+x11 = *(uint64_t*)(arg+0x08)   // ibdesc_addr (64-bit 用户指针!)
+w9  = *(uint32_t*)(arg+0x10)   // numibs
 
-**结论**: 32-bit ARM 上的 GhostLock 竞态触发和 KGSL ioctl 分派均正常工作。唯一阻塞点在 GPU context 创建。
+// 构建 native struct (32B) — 注意字段交换 BUG:
+native[0x00] = w8              // drawctxt_id ✅
+native[0x08] = x10             // ← 应该是 ibdesc_addr，实际是 flags!
+native[0x10] = x11             // ← 应该是 numibs，实际是 ibdesc_addr!
+native[0x18] = w9              // ← 应该是 flags，实际是 numibs!
+
+// 调用 native handler
+kgsl_ioctl_rb_issueibcmds(device, cmd, &native);
+```
+
+**Swap workaround 理论**: 预补偿字段交换
+```
+compat.flags       = (uint32_t)ibdesc_ptr   // → native.ibdesc_addr
+compat.ibdesc_addr = (uint64_t)numibs       // → native.numibs  
+compat.numibs      = flags_value            // → native.flags
+```
+
+**测试结果**: Swap workaround 仍返回 EINVAL ❌
+
+**NR=0x10 穷举扫描**: 所有方向×所有大小(0-64)×3种备选布局 → 全部 EINVAL
+
+**NR=0x3d (SUBMIT_COMMANDS) 对比**: 所有大小(20-56) 全部成功 ✅
+
+### 十二-F、分派路径差异 (2026-07-25 新发现)
+
+**64-bit 成功路径**:
+```
+kgsl_ioctl → kgsl_ioctl_helper(regular_table) → ENOTTY (handler=NULL)
+→ TIF_32BIT=0 → fallback_handler(ext+0xc0) → SUCCESS
+```
+
+**32-bit 失败路径**:
+```
+kgsl_compat_ioctl → kgsl_ioctl_helper(compat_table) → ENOTTY (handler=NULL)
+→ compat_handler(ext+0xc8) → compat wrapper → EINVAL
+```
+
+**关键差异**: 64-bit 走 fallback handler (ext+0xc0)，32-bit 走 compat handler (ext+0xc8)。两者是不同的 runtime 函数指针，表项中 handler=NULL 说明真正分派发生在这些运行时初始化的回调中。
+
+### 十二-G、确定性结论与路径选择 (2026-07-25 最终)
+
+**32-bit KGSL RB_ISSUEIBCMDS: ❌ 已关闭**
+- EFAULT probe 确认: compat dispatch (ext+0xc8) 在到达 wrapper 前返回 EINVAL
+- 所有字段布局/大小/方向的穷举测试均失败
+- 此路径在此内核上不可行
+
+**剩余可行路径**:
+
+| 优先级 | 路径 | 状态 | 说明 |
+|--------|------|------|------|
+| **P0** | 64-bit KGSL + GhostLock | CFU 位差 88B | RB_ISSUEIBCMDS 可到达，需解决位差 |
+| **P0** | 32-bit SUBMIT_COMMANDS | CFU 位差 120B | ioctl 可到达，位差更大 |
+| P1 | uinput / setsockopt | 未验证 | 需额外深度，待实际测试 |
+| P1 | sde_crtc (DRM card0) | FULL@0x180 | "深度过深"可能恰好匹配 |
+| P2 | 堆喷射绕过 | 循环依赖 | 需要 pipe physrw → fops overwrite → stack overwrite |
+
+**64-bit KGSL 位差分析**:
+```
+Waiter task @ abs: -(sys_futex 0x70 + do_futex 0x220 + futex_wait 0x140) + 0xB0 = -0x320
+64-bit CFU @ abs:   -(kgsl_ioctl 0x30 + helper 0xD0 + rb_issueibcmds 0x70 
+                     + create 0x40 + add_ibdesc 0x40 + add_ibdesc_list 0x90) + 0x08 = -0x2C8
+差值: 0x58 (88 字节) — CFU 太浅
+```
+
+**可能的解决方案**:
+1. 通过嵌套 syscall（如从 signal handler 调用 ioctl）增加内核栈深度
+2. 寻找更深的 KGSL 命令路径（如 GPU_AUX_COMMAND 或其他 NR）
+3. 使用 fuse/inotify 等文件系统事件触发更深的内核路径
 
 ---
 
-*最后更新: 2026-07-24*
+*最后更新: 2026-07-25*
+*32-bit RB_ISSUEIBCMDS: ❌ 已关闭 | 64-bit KGSL: 🔄 位差 88B 待解决*
 *Phase 1 已验证 ✅ + Phase 2 代码集成完成（32-bit ARM PIE 111K 已编译部署，mmap 兼容性待修复）*

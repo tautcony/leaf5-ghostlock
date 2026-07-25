@@ -461,3 +461,232 @@ GPU context 创建需要专有用户态驱动（libEGL_adreno.so / vulkan.adreno
 **下一步需求**:
 - 修复 32-bit compat 路径的 RB_ISSUEIBCMDS（定位 compat wrapper 中 EINVAL 来源）
 - 或找到从 32-bit 进程绕过 compat wrapper 调用 regular handler 的方法
+
+### 35. kgsl_compat_ioctl 分派链深度逆向 + NR=0x10 穷举扫描（2026-07-25）
+
+**kgsl_ioctl_helper 完整逆向**:
+- 函数位于 `0xffffff80087a2a90`，帧 0xD0
+- 逻辑: `nr = cmd & 0xFF` → `if (nr >= table_size) ENOTTY` → `handler = table[nr][1]` → `if (!handler) ENOTTY` → `size = (table[nr][0] >> 16) & 0x3FFF` → `copy_from_user` → `blr handler` → `copy_to_user` (方向位)
+- **关键发现**: table[nr][1]（handler 函数指针）在 compat 表和 regular 表中均为 NULL！
+  - Compat 表 (0xffffff80099d3018): 所有 entry[1] = 0
+  - Regular 表 (0xffffff80099d2540): 所有 entry[1] = 0
+  - 真正的 handler 分派通过 runtime 初始化的函数指针（ext+0xc0 / ext+0xc8）
+
+**64-bit vs 32-bit 分派路径确认**:
+```
+64-bit: sys_ioctl → kgsl_ioctl → kgsl_ioctl_helper(regular_table) → ENOTTY
+        → TIF_32BIT not set → fallback handler(ext+0xc0) → SUCCESS (for 0xc0140910)
+
+32-bit: compat_sys_ioctl → kgsl_compat_ioctl → kgsl_ioctl_helper(compat_table) → ENOTTY
+        → compat handler(ext+0xc8) → compat wrapper → EINVAL (for 0xc0140910)
+```
+
+**NR=0x10 穷举扫描结果**:
+- 所有方向 (0-3) × 所有大小 (0-64, step=4) → **全部 EINVAL**
+- 3 种备选字段布局 (Layout A/B/C) → **全部 EINVAL 或 ENOTTY**
+- Swap workaround (预补偿 wrapper 字段交换) → **仍然 EINVAL**
+
+**NR=0x3d (SUBMIT_COMMANDS) 对比**:
+- **所有大小 (20-56, step=4) 全部成功!** ✅
+- SUBMIT_COMMANDS compat 路径完全正常，NR=0x10 特定失败
+
+**结论**: RB_ISSUEIBCMDS (NR=0x10) 在 32-bit compat 路径下被 compat dispatch function (ext+0xc8) 特定拒绝。
+- 可能原因1: compat wrapper `kgsl_ioctl_rb_issueibcmds_compat` 的字段交换 bug 导致总是返回 EINVAL
+- 可能原因2: compat dispatch function 对 NR=0x10 有特殊限制
+- Swap workaround 无效 → 说明问题不在字段映射层面，或在更深层验证
+
+### 36. EFAULT probe 确认：compat wrapper 从未到达 native handler (2026-07-25)
+
+**测试设计**: 使用 swap workaround 将 compat.flags 设置为不同值（valid ptr / bad ptr 0x1 / NULL），观察 errno 变化
+- 如果 native handler 被调用: bad ptr (0x1) → EFAULT (14)，NULL → EFAULT/EINVAL
+- 如果 wrapper 提前返回: 所有测试均 EINVAL (22)
+
+**结果**: **所有 6 种测试均返回 EINVAL (22)**
+- valid_ptr: EINVAL ❌ (应该成功或至少不是 EINVAL)
+- bad_ptr_0x1: EINVAL ❌ (应该是 EFAULT)
+- null_ptr: EINVAL ❌ (应该是 EFAULT)
+- numibs=0: EINVAL ❌
+- normal (unswapped): EINVAL ❌
+- dual_ptr: EINVAL ❌
+
+**结论**: **compat wrapper / native handler 从未被调用!** EINVAL 来自 compat dispatch function (ext+0xc8) 对 NR=0x10 的特殊处理。
+
+**与 SUBMIT_COMMANDS 对比**:
+- NR=0x3d (SUBMIT_COMMANDS): 所有大小 (20-56) → SUCCESS ✅
+- NR=0x10 (RB_ISSUEIBCMDS): 所有变化 → EINVAL ❌
+
+**KGSL 路线确定性结论**:
+- 32-bit RB_ISSUEIBCMDS: **不可行** — compat dispatch 在到达 wrapper 前就拒绝
+- 32-bit SUBMIT_COMMANDS: 可行但 CFU 位置不匹配 (差 120B)
+- 64-bit RB_ISSUEIBCMDS: 可行但 CFU 位置不匹配 (差 88B)
+
+### 37. Native handler 逆向与验证链 (2026-07-25)
+
+**kgsl_ioctl_rb_issueibcmds 验证逻辑**:
+```c
+flags = data[0x18];
+if (flags & 0x402) → EINVAL;           // 未知标志位检查
+if (flags & 4) {                        // SUBMIT_IB_LIST
+    if (((numibs-1) >> 5) > 0xc34) → EINVAL;  // numibs 上限
+}
+context = idr_find(device->ctx_idr, drawctxt_id);
+if (!context) → EINVAL;                // context 查找失败
+if (context->flags & 2) → EINVAL;      // context 状态检查
+if (!refcount_inc_not_zero(context)) → EINVAL;
+if (context->dev_priv != dev_priv) → 额外检查;
+// ... 通过所有检查后到达 CFU 路径
+```
+
+**Compat wrapper vs native handler 字段映射对比**:
+```
+Native struct:  +0x00:drawctxt_id +0x08:ibdesc_addr +0x10:numibs +0x18:flags
+Compat struct:  +0x00:drawctxt_id +0x04:flags +0x08:ibdesc_addr(64b) +0x10:numibs
+Wrapper builds: +0x00:drawctxt_id +0x08:flags(x10) +0x10:ibdesc(x11) +0x18:numibs(w9)
+                                                ↑BUG!           ↑BUG!         ↑BUG!
+```
+
+**分派路径差异 (64-bit vs 32-bit)**:
+```
+64-bit: sys_ioctl → kgsl_ioctl → kgsl_ioctl_helper → ENOTTY
+        → fallback_handler(ext+0xc0) → SUCCESS ✅
+
+32-bit: compat_sys_ioctl → kgsl_compat_ioctl → kgsl_ioctl_helper → ENOTTY
+        → compat_handler(ext+0xc8) → EINVAL ❌ (wrapper never called!)
+```
+
+### 38. 64-bit GhostLock + KGSL CFU 实测 (2026-07-25)
+
+**ghostlock64_v2 测试结果**:
+- GhostLock ✅ (CMP_REQUEUE_PI ret=1)
+- KGSL context 创建 ✅ (id=7)
+- RB_ISSUEIBCMDS compat cmd (0xc0140910): **ret=0 ✅ CFU FIRED!**
+- ALL 8 种 flag 组合 (0x01-0x80): 全部 ret=0 ✅
+- 内核存活 — **CFU 位置与 waiter 不重叠**
+
+**ghostlock64_scan 测试结果** (多路径扫描):
+- RB_ISSUEIBCMDS numibs=1: CFU fired, kernel survived
+- RB_ISSUEIBCMDS numibs=2: CFU fired, kernel survived
+- RB_ISSUEIBCMDS flag=0x1000 (alt path): CFU fired, kernel survived
+- SUBMIT_COMMANDS (64-bit): EINVAL (不支持)
+- GPU_COMMAND/AUX_COMMAND: ENOTTY/EINVAL
+
+**ghostlock64_opt 测试结果** (预创建资源,最小化栈干扰):
+- CFU fired, kernel survived — 5次循环均一致
+
+**确定性结论**: 64-bit KGSL CFU 位置与 GhostLock waiter 存在~88字节偏移，所有变体均无法重叠。
+
+### 39. 备选 CFU 路由设备可访问性 (2026-07-25)
+
+| 设备 | 权限 | 实际可访问 | 原因 |
+|------|------|-----------|------|
+| `/dev/uinput` | 0660 uhid:uhid | ✅ 可读可写 | shell 可以打开 |
+| `/dev/dri/card0` | 0666 | ❌ Permission denied | SELinux 阻止 |
+| `/dev/dri/renderD128` | 0666 | ❌ Permission denied | SELinux 阻止 |
+
+**uinput CFU 位置**: 92B@SP+0x60, 绝对位置 ~KSP0-0x150, waiter task @ KSP0-0x2B0, **差 352B (比 KGSL 更差)**
+
+### 40. CFU 位置精算与最终结论 (2026-07-25)
+
+**GhostLock waiter 精确位置**:
+```
+KSP0 = sys_futex 入口栈指针
+do_futex 帧: 0x220 → SP = KSP0 - 0x220
+futex_wait 帧: 0x140 → SP = KSP0 - 0x360
+futex_q (含 waiter) @ futex_wait SP + 0x80 = KSP0 - 0x2E0
+waiter->task @ KSP0 - 0x2E0 + 0x30 = KSP0 - 0x2B0  ← 目标位置
+```
+
+**64-bit KGSL CFU 范围**: [KSP0 - 0x238 - FF, KSP0 - 0x218 - FF), FF = fallback_handler 帧
+- 覆盖 waiter->task 条件: FF ∈ [0x78, 0x98) = [120, 152)
+- 实测: 内核存活 → FF < 120 或 FF ≥ 152 → **CFU 不重叠**
+
+**32-bit KGSL CFU 范围**: [KSP0 - 0x2A8 - CF, KSP0 - 0x298 - CF), CF = compat_handler 帧
+- 覆盖 waiter->task 条件: CF ∈ [8, 24)
+- compat_handler 帧不可能 < 24 字节 → **CFU 过深，必然不重叠**
+
+**结论**: GhostLock waiter->task @ KSP0-0x2B0 位于两个 CFU 位置之间:
+```
+64-bit CFU: ~KSP0-0x228  (太浅，差距 ~88B)
+waiter task: KSP0-0x2B0  (目标)
+32-bit CFU: ~KSP0-0x2A0+ (太深，超出)
+```
+
+**此前进程日志中"32-bit CFU 完美重叠"的分析存在计算误差。实际 32-bit CFU 需要 compat_handler 帧 < 24 字节才可能重叠，这在现实中不可行。**
+
+### 41. 最终路线确定
+
+经过完整分析，Leaf5 (kernel 4.19.157) 与 OPPO Find N2 (kernel 5.10) 的关键差异导致标准 GhostLock 利用链在此设备上不可行:
+
+| 差异 | Find N2 (5.10) | Leaf5 (4.19) | 影响 |
+|------|---------------|-------------|------|
+| rt_mutex_waiter 大小 | 0x50 (80B) | 0x40 (64B) | waiter 位置不同 |
+| futex 栈帧深度 | 不同 | do_futex 0x220 + futex_wait 0x140 | waiter @ -0x2B0 |
+| KGSL CFU 深度 | 匹配 | 32-bit 过深 / 64-bit 过浅 | 无一匹配 |
+| qcedev_ioctl | 未测试 | 权限阻塞 (drmrpc) | 不可访问 |
+
+**唯一位置正确且可到达的 CFU 不存在于此设备上。需要探索非 CFU 的利用路径。**
+
+### 42. 64-bit exploit 端到端循环测试 (2026-07-25)
+
+**10 次循环结果**: 全部一致 — `cfi write ret=-1 errno=22`, `done=0 root=0`
+- Kernelsnitch ✅ / Heap spray ✅ / GhostLock ✅ / KGSL CFU ✅
+- PI trigger (sched_setattr): EPERM (shell 无 CAP_SYS_NICE)
+- Configfs write: EINVAL (ashmem fops 未覆盖)
+- CFU 位置无任何随机波动 — 100% 不匹配
+
+**最终确定性结论**: 在 Leaf5 (kernel 4.19.157, build #245) 上，GhostLock 标准利用链的核心步骤——通过 CFU 覆盖 stale waiter 的 task 指针——因内核栈布局差异而不可行。此设备的 do_futex/futex_wait 帧布局导致 waiter @ KSP0-0x2B0，该位置恰好位于 64-bit CFU (太浅) 和 32-bit CFU (太深) 之间，无法被任何可到达的 KGSL CFU 路径覆盖。
+
+**可行的前进方向**:
+1. 寻找非 KGSL 的 CFU 源 (qcedev_ioctl 位置正确但权限阻塞 — 需 binder 代理)
+2. 寻找绕过 compat dispatch 的方法 (运行时修改 ext+0xc8 函数指针?)
+3. 利用此设备无 CFI/无 KPTI 的特点寻找替代攻击向量
+4. 开发不依赖栈覆盖的全新利用技术
+
+### 43. FUTEX_LOCK_PI 触发测试 — 最终确认 (2026-07-25)
+
+**修复 trigger_pi_read 的 64-bit 地址截断 bug**，直接调用 FUTEX_LOCK_PI:
+- `PI trigger ret=0 errno=110` — FUTEX_LOCK_PI 成功获取锁
+- 内核存活 — PI chain walk 未导致 crash
+- `cfi write ret=-1 errno=22` — fops 仍未覆盖
+
+**完整 10 次循环测试**: 64-bit KGSL CFU 每次均触发成功，但 PI chain walk 后 fops 均未覆盖。
+
+**最终确定性结论**: 10 次循环 + FUTEX_LOCK_PI 触发 = 内核均存活。CFU 位置与 waiter->task 的偏移在此内核构建中是固定的，不受栈随机化影响。
+
+**Leaf5 (kernel 4.19.157 build #245) GhostLock 利用链完成度**:
+
+| 步骤 | 状态 | 备注 |
+|------|------|------|
+| Kernelsnitch | ✅ 100% | <1秒可靠泄漏 mm_struct |
+| 堆喷射 | ✅ 100% | sk_buff reclaim 4/4, ret=65536 |
+| GhostLock 触发 | ✅ 100% | FUTEX_CMP_REQUEUE_PI ret=1 |
+| KGSL context | ✅ 100% | flags=0x12, ctx_id=7 |
+| RB_ISSUEIBCMDS CFU | ✅ 100% | 64-bit 路径 ret=0 |
+| CFU 覆盖 waiter->task | ❌ 0% | 位置偏差固定，10次无变化 |
+| PI chain walk | 🔄 — | 可触发但无效应 (waiter->task 未变) |
+| Fops overwrite | ❌ | 依赖上一步 |
+| Configfs R/W | ❌ | 依赖上一步 |
+| Pipe physrw | ❌ | 依赖上一步 |
+| Root | ❌ | 依赖上一步 |
+
+**总完成度: ~70%** (Kernelsnitch + Heap spray + GhostLock + CFU 均可正常工作，仅栈覆盖位置不匹配)
+
+### 44. 备选 syscall 栈覆盖暴力测试 (2026-07-25)
+
+**测试方法**: GhostLock 后尝试不同内核路径 (writev/sendmsg/splice)，用 crash pattern 填充数据，然后触发 PI chain walk 检验是否覆盖 waiter->task。
+
+**测试结果**: 内核存活 — writev(64K) / sendmsg(64K) / splice(64K) 均无法自然覆盖 waiter 位置。
+
+**结论**: 常见的深度内核路径 (pipe write, socket sendmsg, splice) 的栈帧深度不足以覆盖此设备上 GhostLock waiter 的位置 (KSP0-0x2B0)。需要 ~0x2B0 字节以上的栈帧深度加上可控数据写入，满足此条件的用户态可达路径在此内核上不存在。
+
+### 最终结论
+
+在 Onyx Leaf5 (kernel 4.19.157-perf-g3d47a6619220-dirty #245) 上，GhostLock (CVE-2026-43499) 标准利用链因内核栈布局差异而不可行。此结论基于:
+
+1. **完整的 compat dispatch 逆向**: 确认 32-bit KGSL RB_ISSUEIBCMDS 被 compat dispatch (ext+0xc8) 在到达 wrapper 前拒绝
+2. **EFAULT 探针**: 证实 wrapper/native handler 从未被调用
+3. **64-bit CFU 实测**: 10+ 次循环测试 + PI chain walk 触发，CFU 均成功但 fops 从未覆盖
+4. **备选路由验证**: DRM (SELinux), uinput (位置差 352B), qcedev (权限), 其他路由均不可行
+5. **备选 syscall 测试**: writev/sendmsg/splice 均无法自然覆盖 waiter
+
+**设备特殊性**: 此设备的 do_futex/futex_wait 栈帧布局导致 waiter->task @ KSP0-0x2B0，恰好位于 64-bit CFU (太浅 ~88B) 和 32-bit CFU (太深) 之间。这是内核编译时的栈布局决定的，无法从用户态改变。
