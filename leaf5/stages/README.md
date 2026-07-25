@@ -121,4 +121,4 @@ KGSL list CFU（flags2@+0x18 bit2）可达但 ~stack_top-0x308，过深 ~0x1A0�
 旧 flags=0 探针从未 list-CFU 拷贝 ibdesc。
 ```
 
-*2026-07-25 晚：shell 可达 binder `GET_NODE_DEBUG_INFO` 静态覆盖 task@−0x168 且 EFAULT 证明 CFU；GhostLock 后仍无 cover 副作用。下一步：残差存活性 / 阻塞窗口信号 CFU，勿假称 root。*
+*2026-07-25 终局补充：adjtimex 208B CFU 宽窗覆盖 CORRECTED waiter 区间且设备 EFAULT/填 0x41 后仍无 OOPS → **post-return 栈残差模型关闭**。root 未达成。*

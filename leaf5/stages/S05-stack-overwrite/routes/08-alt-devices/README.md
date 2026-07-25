@@ -17,6 +17,9 @@
 | `probes/test_binder_cfu.c` | binder ioctl 矩阵 | ✅ CFU | GET_NODE_DEBUG_INFO / NODE_INFO / WRITE_READ48 **EFAULT** |
 | `probes/ghostlock_binder_cfu.c` | GhostLock+binder | ❌ 存活 | ioctl ret=0，sched 后无 crash |
 | `probes/ghostlock_binder_wake_cfu.c` | requeue+unlock+CFU | ❌ 存活 | WAIT ret=0 后立即 CFU，仍无 crash |
+| `probes/ghostlock_binder_signal_cfu.c` | 信号 handler CFU | ❌ 存活 | SIGUSR1 中 CFU ret=0 |
+| `probes/test_adjtimex_cfu.c` | adjtimex 208B | ✅ CFU | bad→EFAULT；sizeof=208 |
+| `probes/ghostlock_adjtimex_cfu.c` | GhostLock+adjtimex | ❌ 存活 | 0x41 填满 [0x118,0x1e8) 含 task 槽仍无 OOPS |
 
 ## 静态重扫（相对 stack_top，ioctl nest 含/不含 thin wrapper）
 
@@ -26,6 +29,7 @@
 | `binder_ioctl` GET_NODE_DEBUG_INFO | ✅ `/dev/binder` | 24B @ SP+0x10 | **[−0x160,−0x178)** | **静态 HIT**（task@buf+8=cookie） |
 | `uinput_ioctl_handler` | ✅ | 12B @ SP+0x60 | −0x1a0 | 过深 ~0x38 |
 | kgsl list CFU | ✅ | 32B @ SP+8 | −0x308 | 过深 ~0x1A0 |
+| **`adjtimex` syscall** | ✅ | **208B @ SP+8** | **[−0x118,−0x1e8)** | **静态 HIT（宽窗）** |
 | `/dev/tun` | ❌ vpn 组 | HIT 静态 | — | 权限 |
 | DRM | ❌ SELinux | — | — | — |
 
@@ -48,18 +52,15 @@ GET_NODE_DEBUG_INFO ret=0，cookie=0x4141…
 sched_setattr / PI kick → 内核存活
 ```
 
-## 结论
+## 结论（本轮终局）
 
-1. **shell 可达真 CFU** 已证明：evdev、binder（EFAULT 矩阵）。
-2. **静态最强对齐**：binder `GET_NODE_DEBUG_INFO` 覆盖 `task @ −0x168`。
-3. **GhostLock + 该 CFU 仍无 cover 副作用**（无 OOPS / 无 fops）。可能原因：
-   - 成功返回路径清理了 dangling waiter，残差模型不成立；
-   - 仍有未计入的公共入口帧使绝对偏移整体平移；
-   - 本机构建上 GhostLock 需更窄竞态窗口。
-4. 旧「uinput 差 352B / 全关」在 CORRECTED 目标下 **过时**；本节点改为 ⚠️ 继续（binder 主候选）。
+1. **shell 可达真 CFU**：evdev、binder、**adjtimex**（EFAULT 矩阵）。
+2. **静态对齐 task@−0x168**：binder cookie；**adjtimex 208B 宽窗完整覆盖 waiter 区间 [0x138,0x178)**。
+3. **GhostLock 返回后 + 上述 CFU（含 0x41 全窗）内核仍存活**。
+4. **推断**：在 Leaf5 #245 上，`WAIT_REQUEUE_PI` **返回之后** 不存在仍被 PI 路径解引用的栈上 stale waiter 残差；post-return 栈 CFU 覆盖模型 **关闭**（非单纯“位差 88B”）。
+5. 仍阻塞时同线程无法跑 CFU；跨线程 CFU 写的是对方栈。live-stack 覆盖需其它原语。
 
 ## 下游
 
-- 验证 GhostLock 在 ret=0 返回后 `pi_state`/waiter 是否仍指向栈（需更多 futex 路径或 kprobe/崩溃侧证）。
-- 扩大 binder WRITE_READ 48B CFU 帧分析；尝试在 waiter **仍阻塞** 窗口用同线程信号 handler 触发 CFU。
-- 无 cover 前 **不** 集成 exploit root 链。
+- 不集成 post-return 栈 CFU 到 exploit。
+- 若继续 root：需 **非 post-return 栈残差** 路径（heap 假 waiter 需 physrw 环依赖；或 bootloader/Magisk，需用户确认）。

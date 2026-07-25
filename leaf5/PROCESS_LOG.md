@@ -811,3 +811,19 @@ task:     stack_top-0x168
 - probes: test_evdev_cfu, ghostlock_evdev_cfu, test_binder_cfu, ghostlock_binder_cfu, ghostlock_binder_wake_cfu
 - stages/08 README 更新
 
+
+### 49. Round — adjtimex wide CFU; close post-return residual model (2026-07-25)
+
+**adjtimex** [BIN]: `__arm64_sys_adjtimex` frame 0x120, CFU 208B @ SP+8 → [0x118,0x1e8).
+- Device: valid ret=5; bad ptr **EFAULT**; sizeof(timex)=208.
+- GhostLock ret=1, WAIT ret=0, adjtimex with 0x41 fill → EPERM (modes 特权位，**CFU 已发生**), 内核存活.
+
+**signal CFU**: GhostLock + SIGUSR1 handler binder CFU ret=0, 存活.
+
+**终局论断**:
+- shell 可达 CFU 可精确/宽窗盖住 CORRECTED task@−0x168。
+- 盖住后仍无 PI crash / fops → **返回后栈残差不被解引用**。
+- 标准 GhostLock post-return 栈覆盖链在 Leaf5 #245 **关闭**（证据：adjtimex 宽窗）。
+
+不宣称 root。未做 Magisk/刷写。
+
