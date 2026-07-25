@@ -30,8 +30,10 @@
 | `leaf5/PROCESS_LOG.md` | 时间线证据 |
 | `leaf5/raw/` | config.gz、kheaders、vmlinux*、boot_a.bin（runtime 真源） |
 | `exploit/targets/onyx-leaf5/target.h` | 偏移与宏的代码侧真源 |
-| `leaf5/scripts/` | uv CLI **shim** → 实现在 `stages/S*/scripts/` |
+| `leaf5/scripts/` | uv 包 `scripts.*`（shim → stages） |
 | `exploit/` | 集成 exploit；**新探针优先放 stages** |
+| `out/` | 编译产物：`out/exploit/`、`out/stages/`（见 `BUILD_OUTPUT.md`） |
+| `pyproject.toml` / `.venv` | **仓库顶层** Python（`uv sync`） |
 
 ### 文档纪律
 1. 节点成败与终局以 **`stages/*/README.md` + `PROCESS_LOG.md`** 为准。
@@ -64,10 +66,10 @@ waiter->task @ KSP0 - 0x2B0
 | **文档与代码同批** | 改偏移/路由时同步 `target.h` 与对应 stages README（必要时 PROCESS_LOG）。 |
 
 ### 编译
-- Python：`cd leaf5 && uv sync`（`leaf5/pyproject.toml` 入口）
-- NDK：**Docker 优先**（`exploit/docker-build.sh`）；探针：`leaf5/stages/Makefile`
+- Python：在**仓库根** `uv sync`（`pyproject.toml` → `./.venv`）；`uv run leaf5-collect` 等
+- 二进制**只**写入 `out/`（`make exploit` / `make -C leaf5/stages SRC=...`），见 `BUILD_OUTPUT.md`
+- NDK：**Docker 优先**（`exploit/docker-build.sh`）；探针：`leaf5/stages/Makefile`（`arm32`/`arm64` 子目录）
 - 32-bit：`armv7a-linux-androideabi*-clang`；64-bit：`aarch64-linux-android*-clang`
-- `stages/build/` 与编译产物 **不入库**
 - 编辑器缺 `-DTARGET_CONFIG_H` 的诊断可忽略；以实编为准
 
 ### 提交

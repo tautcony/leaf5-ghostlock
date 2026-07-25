@@ -1,4 +1,4 @@
-> **文档类型**: 无关文档 | **状态**: ⚠️ 与 Leaf5 GhostLock 分析无关 — 此为 Boox P6 Pro (SM7225/bitra_SDM) EDL printgpt 原始输出 | **采集日期**: ~2025-12
+> **文档类型**: 样例归档 | **状态**: 仅作 printgpt 输出格式参考 | **设备**: Boox P6 Pro (SM7225/bitra_SDM)，**非 Leaf5** | **用途**: EDL 分区表 dump 样例；Leaf5 实测应另存 printgpt-leaf5.md | **采集**: ~2025-12
 
 Keystone library is missing (optional).
 Qualcomm Sahara / Firehose Client V3.62 (c) B.Kerler 2018-2025.

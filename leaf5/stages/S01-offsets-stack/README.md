@@ -29,5 +29,5 @@ rt_mutex_waiter sizeof = 0x40（无 prio/deadline）
 → S02 使用偏移；S05 各路由用栈布局判重叠。
 
 ## 文档交叉
-- [`../../STACK_LAYOUT.md`](../../STACK_LAYOUT.md)
-- [`../../VERIFICATION_REPORT.md`](../../VERIFICATION_REPORT.md)
+- [`../../docs/STACK_LAYOUT.md`](../../docs/STACK_LAYOUT.md)
+- [`../../docs/VERIFICATION_REPORT.md`](../../docs/VERIFICATION_REPORT.md)

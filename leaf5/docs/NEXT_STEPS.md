@@ -1,7 +1,7 @@
 > **文档类型**: 计划文档（后续工作清单） | **状态**: ✅ 有效（终局已更新） | **最后更新**: 2026-07-25
 
 
-> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。
+> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](../stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](../PROCESS_LOG.md) 为准。
 # Leaf5 GhostLock — 后续分析方案
 
 **目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13  
@@ -14,7 +14,7 @@
 | 前半链（Kernelsnitch / spray / GhostLock / KGSL CFU 触发） | ✅ 已验证 |
 | CFU 覆盖 `waiter->task` | ❌ **栈布局位差，标准链关闭** |
 | 完成度 | ~70% |
-| 权威证据 | [`PROCESS_LOG.md`](PROCESS_LOG.md) 步骤 40–44 |
+| 权威证据 | [`PROCESS_LOG.md`](../PROCESS_LOG.md) 步骤 40–44 |
 
 ```
 waiter->task @ KSP0-0x2B0
@@ -471,7 +471,7 @@ adb shell dmesg -w | grep -E 'panic|oops|BUG|GhostLock|waiter|kgsl'
 | 文件 | 阶段 | 说明 |
 |------|------|------|
 | `leaf5/probes/kgsl_probe/kgsl_probe.c` | Phase 1 | 32-bit NDK 探针 |
-| `leaf5/docs/KGSL_STACK_OVERWRITE.md` | Phase 1-2 | kgsl compat 栈覆盖详细文档 |
+| `docs/KGSL_STACK_OVERWRITE.md` | Phase 1-2 | kgsl compat 栈覆盖详细文档 |
 | `exploit/src/fops.c` (修改) | Phase 2 | 新增 kgsl compat 栈覆盖路径 |
 | `exploit/src/kgsl_route.c` (新增) | Phase 2 | kgsl ioctl 结构体 + 调用 |
 | `exploit/targets/onyx-leaf5/target.h` (修改) | Phase 2 | 新增 KGSL 相关宏 |

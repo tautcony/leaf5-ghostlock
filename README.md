@@ -29,9 +29,12 @@
 ├── exploit/                 # Leaf5 exploit 源码（onyx-leaf5）
 └── leaf5/
     ├── stages/              # ★ 利用/分析流水线（文档 ↔ 代码）
+    ├── docs/                # 参考与历史文档
+    ├── edl/                 # EDL 只读提取 boot/分区
     ├── scripts/             # uv 包 scripts.*（shim → stages）
     ├── raw/
-    └── *.md
+    ├── PROCESS_LOG.md
+    └── README.md
 ```
 
 ### 流水线一览
@@ -79,7 +82,8 @@ make -C leaf5/stages \
 | [leaf5/stages/README.md](leaf5/stages/README.md) | **主索引（推荐）** |
 | [leaf5/README.md](leaf5/README.md) | 工作区说明 |
 | [leaf5/PROCESS_LOG.md](leaf5/PROCESS_LOG.md) | 时间线证据 |
-| [leaf5/NEXT_STEPS.md](leaf5/NEXT_STEPS.md) | 历史路线 / 剩余方向 |
+| [leaf5/docs/](leaf5/docs/README.md) | 参考文档 / 历史路线 |
+| [leaf5/edl/](leaf5/edl/README.md) | EDL 只读提取镜像 |
 
 ---
 

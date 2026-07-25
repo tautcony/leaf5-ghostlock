@@ -2,7 +2,7 @@
 
 # Leaf5 分析过程流水（2026-07-24）
 
-按时间顺序记录操作，便于审计与复现。详细结论见 [ANALYSIS.md](ANALYSIS.md)。
+按时间顺序记录操作，便于审计与复现。详细结论见 [docs/ANALYSIS.md](docs/ANALYSIS.md)。
 
 ## 背景
 
@@ -46,7 +46,7 @@
 ### 7. 工具与文档
 
 - `leaf5/pyproject.toml` + uv scripts：`leaf5-collect` / `leaf5-summarize`
-- 撰写 `ANALYSIS.md`、`README.md`、`COMPARE_OPPO_FIND_N2.md`、`NEXT_STEPS.md`
+- 撰写 `docs/ANALYSIS.md`、`README.md`、`docs/COMPARE_OPPO_FIND_N2.md`、`docs/NEXT_STEPS.md`
 - 原始数据落在 `raw/`
 
 ## 未执行（有意）
@@ -81,7 +81,7 @@
 ### 11. target.h 与文档
 
 - 创建 `exploit/targets/onyx-leaf5/target.h`（含 [BIN]/[SYM]/[SRC]/[EST] 验证标记）
-- 更新 `ANALYSIS.md` §8 加入偏移定位结果
+- 更新 `docs/ANALYSIS.md` §8 加入偏移定位结果
 - 更新 `pyproject.toml` 增加 `leaf5-extract-offsets` 入口
 - [SRC]/[EST] 标记的偏移（TASK_PID_OFF、TASK_TASKS_OFF 等）需后续 pahole/IDA 验证
 
@@ -104,7 +104,7 @@
 - futex_wait: 0x140 (320B) 栈帧
 - **futex_q（含 rt_mutex_waiter）位于 futex_wait 的 sp+0x80**
 - waiter sizeof=0x40, waiter->task 在 sp+0xb0
-- 写入 `STACK_LAYOUT.md`
+- 写入 `docs/STACK_LAYOUT.md`
 
 ### 14. 工具链与可复用脚本
 
@@ -218,7 +218,7 @@ CFU 16B @ SP+0x28, frame=0x90:
 - 设备: `/dev/kgsl-3d0` (0666 世界可读写)
 - 条件: 必须编译为 32-bit ARM 可执行文件以触发 TIF_32BIT
 - 覆盖: 16B → pi_tree.left (可控) + TASK 指针 (可控), LOCK (脏数据)
-- 更新 NEXT_STEPS.md: 路由矩阵、Phase 1-6 规划、偏移验证结果
+- 更新 docs/NEXT_STEPS.md: 路由矩阵、Phase 1-6 规划、偏移验证结果
 - 更新 target.h: 所有 [EST] → [BIN], 去除重复定义
 - 更新 PROCESS_LOG.md: 步骤 17-21
 
@@ -712,3 +712,10 @@ waiter task: KSP0-0x2B0  (目标)
 5. **备选 syscall 测试**: writev/sendmsg/splice 均无法自然覆盖 waiter
 
 **设备特殊性**: 此设备的 do_futex/futex_wait 栈帧布局导致 waiter->task @ KSP0-0x2B0，恰好位于 64-bit CFU (太浅 ~88B) 和 32-bit CFU (太深) 之间。这是内核编译时的栈布局决定的，无法从用户态改变。
+
+### 45. 文档整理（2026-07-25）
+
+- 一层杂乱 md 迁入 `docs/`（参考）与 `docs/archive/`（过时计划）
+- EDL 独立为 `edl/`：**只读提取**流程；删除 P6 Pro Magisk/改镜像指南
+- 移除空 stub：`probes/`、`ghostlock-analysis/`（内容已在 stages）
+- 入口：`leaf5/README.md` + `docs/README.md` + `edl/README.md`

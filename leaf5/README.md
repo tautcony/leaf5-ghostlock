@@ -10,7 +10,7 @@
 |--------|------|------|
 | 1 | **[`stages/README.md`](stages/README.md)** | **流水线主索引**：按利用顺序的代码 + 效果记录 |
 | 2 | [`PROCESS_LOG.md`](PROCESS_LOG.md) | 时间线与原始证据（步骤 40–45 终局） |
-| 3 | [`NEXT_STEPS.md`](docs/NEXT_STEPS.md) | 历史路线与剩余可选方向 |
+| 3 | [`docs/README.md`](docs/README.md) | 画像 / 偏移 / 路线等参考与归档 |
 | 4 | 本文件 | 设备快照与仓库地图 |
 
 > 早期「qcedev 世界可写」「32-bit KGSL 完美重叠」等表述已废弃；以 **stages** 各节点 README 与 PROCESS_LOG 为准。
@@ -38,7 +38,7 @@ waiter->task @ KSP0 - 0x2B0
 32-bit RB_ISSUE  compat 拒绝 / 理论过深
 ```
 
-**完成度 ~70%**。
+**完成度 ~70%**。剩余可选方向见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) **十二-G**（与终局冲突时以 stages / PROCESS_LOG 为准）。
 
 ---
 
@@ -60,25 +60,17 @@ waiter->task @ KSP0 - 0x2B0
 
 ```
 leaf5/
-├── README.md                 # 本文件
-├── stages/                   # ★ 流水线（代码 + 节点效果文档）
+├── README.md              # 本文件
+├── PROCESS_LOG.md         # 操作流水（终局权威过程）
+├── stages/                # ★ 流水线（代码 + 节点效果文档）
 │   ├── README.md
-│   ├── Makefile              # 探针统一编译
-│   ├── S00-device-profile/
-│   ├── S01-offsets-stack/
-│   ├── S02-kernelsnitch-leak/
-│   ├── S03-heap-spray/
-│   ├── S04-ghostlock-trigger/
-│   ├── S05-stack-overwrite/routes/{01..09}/...
-│   ├── S06-e2e-chain/
-│   └── S07-post-cfu/
-├── scripts/                  # uv 入口 shim → stages/*/scripts
-├── raw/                      # 设备原始采集
-├── docs/                     # 专题笔记（含 KGSL 勘误）
-├── PROCESS_LOG.md            # 操作流水
-├── NEXT_STEPS.md / ANALYSIS.md / ...
-├── probes/                   # 已迁移，仅保留跳转说明
-└── ghostlock-analysis/       # 已迁移，仅保留跳转说明
+│   ├── Makefile
+│   └── S00 … S07 …
+├── docs/                  # 参考与历史文档（见 docs/README.md）
+├── edl/                   # EDL 只读提取 boot/分区（见 edl/README.md）
+├── raw/                   # 设备原始采集（config / kheaders / vmlinux*）
+├── scripts/               # uv 入口 shim → stages/*/scripts
+└── boot_a.bin             # gitignore；runtime 对齐的 boot 镜像
 ```
 
 仓库根目录 `../exploit/`：Leaf5 专用 exploit（`targets/onyx-leaf5`），对应 S02–S07 集成实现。
@@ -88,36 +80,32 @@ leaf5/
 ## 工具
 
 ```bash
-# 在仓库根（推荐）：顶层 .venv
-cd .. && uv sync
+# 仓库根：顶层 uv / .venv
+uv sync
 uv run leaf5-collect
 uv run leaf5-extract-offsets
 
-# 编译某探针 → ../../out/stages/.../arm64/<name>
-cd stages
-make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
-make list-out
+# 探针 → out/stages/.../{arm32|arm64}/
+make -C leaf5/stages \
+  SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c \
+  BITS=64
 ```
 
-产物布局：[`../BUILD_OUTPUT.md`](../BUILD_OUTPUT.md)。
+产物布局：[`../BUILD_OUTPUT.md`](../BUILD_OUTPUT.md)。  
+boot / vmlinux 来源：[`edl/README.md`](edl/README.md)（只读 dump）→ `boot_a.bin` → `raw/vmlinux.elf`。
 
 ---
 
-## 历史文档（审计用）
+## 文档地图
 
-下列文件保留过程细节，**结论以 stages + PROCESS_LOG 为准**：
-
-| 文档 | 说明 |
+| 位置 | 说明 |
 |------|------|
-| [ANALYSIS.md](docs/ANALYSIS.md) | 早期设备分析（部分路由结论已过时） |
-| [GHOSTLOCK_EXPLOIT_PLAN.md](docs/archive/GHOSTLOCK_EXPLOIT_PLAN.md) | 早期计划 |
-| [VERIFICATION_REPORT.md](docs/VERIFICATION_REPORT.md) | 偏移验证报告 |
-| [STACK_LAYOUT.md](docs/STACK_LAYOUT.md) | 栈布局笔记 |
-| [COMPARE_OPPO_FIND_N2.md](docs/COMPARE_OPPO_FIND_N2.md) | 与 Find N2 对比 |
-| [PSELECT_STACK_ANALYSIS_PLAN.md](docs/archive/PSELECT_STACK_ANALYSIS_PLAN.md) | pselect 计划 |
-| [docs/KGSL_STACK_OVERWRITE.md](docs/KGSL_STACK_OVERWRITE.md) | KGSL 技术笔记 + 终局勘误 |
-| [edl-backup.md](edl/) / [edl-printgpt.md](edl/printgpt-p6pro.md) | EDL 相关 |
+| [stages/](stages/README.md) | **主索引** |
+| [PROCESS_LOG.md](PROCESS_LOG.md) | 时间线 |
+| [docs/](docs/README.md) | ANALYSIS、栈布局、验证报告、NEXT_STEPS、归档计划 |
+| [edl/](edl/README.md) | EDL 提取流程（无改镜像 / Magisk） |
+| [raw/](raw/README.md) | 原始采集 |
 
 ---
 
-*最后更新: 2026-07-25 — 代码按 stages 流水线归档*
+*最后更新: 2026-07-25 — 一层文档整理：历史 md 入 docs/，EDL 独立为只读提取目录*

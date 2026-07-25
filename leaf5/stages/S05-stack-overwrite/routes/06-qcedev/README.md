@@ -6,7 +6,7 @@
 `/dev/qce`（非文档早期写的 qcedev 节点名）上 328B CFU，理论与 waiter FULL 重叠。
 
 ## 代码
-本路由以逆向/文档为主（见 PROCESS_LOG、NEXT_STEPS、global-cfu-scan ANALYSIS）。  
+本路由以逆向/文档为主（见 PROCESS_LOG、docs/NEXT_STEPS、global-cfu-scan ANALYSIS）。  
 无稳定 shell 可达 PoC（open 即失败）。
 
 | 检查项 | 效果 | 原因 |

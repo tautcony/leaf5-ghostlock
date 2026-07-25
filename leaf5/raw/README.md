@@ -2,7 +2,7 @@
 
 # raw/ — 设备原始采集
 
-本目录为 **2026-07-24** 起对 Leaf5 的 adb/主机分析原始输出，供 [ANALYSIS.md](../ANALYSIS.md) 复核。
+本目录为 **2026-07-24** 起对 Leaf5 的 adb/主机分析原始输出，供 [ANALYSIS.md](../docs/ANALYSIS.md) 复核。
 
 | 文件 | 来源 |
 |------|------|
@@ -22,3 +22,5 @@
 ```bash
 cd leaf5 && uv run leaf5-collect
 ```
+
+`boot_a` / vmlinux 来源流程见 [`../edl/README.md`](../edl/README.md)。

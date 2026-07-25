@@ -1,4 +1,6 @@
-> **文档类型**: 过程文档（分析计划） | **状态**: ❌ 已过时 — 计划已执行完毕，精确结论见 [STACK_LAYOUT.md](STACK_LAYOUT.md) 和 [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md)，新栈覆盖路由见 [ghostlock-analysis/copy-from-user-scan/ANALYSIS.md](ghostlock-analysis/copy-from-user-scan/ANALYSIS.md) | **最后更新**: 2026-07-24
+> **归档** | 计划已执行；pselect 路由关闭。结论见 stages `01-pselect` 与 PROCESS_LOG。
+
+> **文档类型**: 过程文档（分析计划） | **状态**: ❌ 已过时 — 计划已执行完毕，精确结论见 [STACK_LAYOUT.md](../STACK_LAYOUT.md) 和 [VERIFICATION_REPORT.md](../VERIFICATION_REPORT.md)，新栈覆盖路由见 [global-cfu-scan](../../stages/S05-stack-overwrite/routes/05-global-cfu-scan/) | **最后更新**: 2026-07-24
 
 
 > ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。

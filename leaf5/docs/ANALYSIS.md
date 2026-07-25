@@ -11,7 +11,7 @@
 | 分析方式 | **从零重做**（废弃此前 leaf5 目录中的旧结论） |
 | ADB Serial | `ac340d06` |
 | 权限上下文 | `uid=2000(shell)` / `u:r:shell:s0`（无 root） |
-| 原始数据 | [`raw/`](raw/) |
+| 原始数据 | [`../raw/`](../raw/) |
 
 本文记录**完整分析过程**与**可复核结论**。所有关键判断均绑定原始采集文件，避免“凭印象写偏移”。
 
@@ -67,7 +67,7 @@ adb shell cat /proc/version
 | 内存 | MemTotal ≈ 3.4 GiB |
 | PAGE_SIZE | 4096 |
 
-原始输出：[`raw/device_identity.txt`](raw/device_identity.txt)、[`raw/soc_info.txt`](raw/soc_info.txt)、[`raw/memory_layout_hints.txt`](raw/memory_layout_hints.txt)。
+原始输出：[`raw/device_identity.txt`](../raw/device_identity.txt)、[`raw/soc_info.txt`](../raw/soc_info.txt)、[`raw/memory_layout_hints.txt`](../raw/memory_layout_hints.txt)。
 
 ### 阶段 B — 启动验证与分区布局
 
@@ -87,7 +87,7 @@ adb shell dd if=/dev/block/mmcblk0p13 ...     # Permission denied
 - **shell 不能读 boot 分区**；无 root 前无法从设备导出与 runtime 一致的 `boot.img`。
 - `/proc/cmdline`、`/proc/partitions`、`/proc/iomem`：Permission denied。
 
-原始输出：[`raw/partitions.txt`](raw/partitions.txt)。
+原始输出：[`raw/partitions.txt`](../raw/partitions.txt)。
 
 ### 阶段 C — 运行时安全面
 
@@ -113,7 +113,7 @@ adb shell head /proc/kallsyms
 | `su` / Magisk | 不存在 | 无现成 root |
 | YAMA ptrace_scope | 路径不存在 | 未启用 YAMA sysctl 节点 |
 
-原始输出：[`raw/security_runtime.txt`](raw/security_runtime.txt)、[`raw/sysctl_probe.txt`](raw/sysctl_probe.txt)。
+原始输出：[`raw/security_runtime.txt`](../raw/security_runtime.txt)、[`raw/sysctl_probe.txt`](../raw/sysctl_probe.txt)。
 
 ### 阶段 D — 内核 CONFIG（权威源：设备 `/proc/config.gz`）
 
@@ -147,7 +147,7 @@ gzip -dc leaf5/raw/config.gz > leaf5/raw/kernel_config.txt
 | `CONFIG_IO_URING` | n | 无 io_uring |
 | `CONFIG_SLUB` + freelist harden/random | y | SLUB 加固开启 |
 
-原始文件：[`raw/config.gz`](raw/config.gz)、[`raw/kernel_config.txt`](raw/kernel_config.txt)、[`raw/config_security_focus.txt`](raw/config_security_focus.txt)。
+原始文件：[`raw/config.gz`](../raw/config.gz)、[`raw/kernel_config.txt`](../raw/kernel_config.txt)、[`raw/config_security_focus.txt`](../raw/config_security_focus.txt)。
 
 ### 阶段 E — 运行时 kheaders（结构体线索）
 
@@ -210,7 +210,7 @@ com.android.webview   present
 
 与仓库 Stage1（Firefox CVE-2026-10702 / SpiderMonkey）版本线 **151** 对齐，具备浏览器侧入口的潜在条件（漏洞是否仍可触发需单独验证，本次未测）。
 
-原始输出：[`raw/interfaces.txt`](raw/interfaces.txt)、[`raw/userspace_probe.txt`](raw/userspace_probe.txt)。
+原始输出：[`raw/interfaces.txt`](../raw/interfaces.txt)、[`raw/userspace_probe.txt`](../raw/userspace_probe.txt)。
 
 ### 阶段 G — 仓库 `boot.img` 核对（重要纠错点）
 
@@ -232,11 +232,11 @@ com.android.webview   present
 2. 基于该 `boot.img` 的符号偏移、栈帧、kallsyms **一律不可直接用于当前设备**。
 3. 此前若把该镜像当 leaf5 真机内核做适配，属于**数据源错误**——这也是本次“从零重做”的主要原因之一。
 
-sha256：见 [`raw/version_compare.txt`](raw/version_compare.txt)。
+sha256：见 [`raw/version_compare.txt`](../raw/version_compare.txt)。
 
 ### 阶段 H — 结构化快照
 
-脚本汇总：[`raw/analysis_snapshot.json`](raw/analysis_snapshot.json)。
+脚本汇总：[`raw/analysis_snapshot.json`](../raw/analysis_snapshot.json)。
 
 复现采集：
 
