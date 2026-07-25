@@ -907,3 +907,19 @@ cfi pwrite errno=22 ❌（fops 未劫持）→ root=0
 
 **阻塞**: 4.19 上 constrained write 仍未命中。下一步：SHIFT 二分 / 写路径对照 / `PSELECT_LOCK_FAKE=1`。
 
+
+### 53. Terminal B — shell write matrix closed (2026-07-26)
+
+**Outcome B** (no controlled write to ashmem_misc.fops / CFI):
+
+Bounded device matrix after EDEADLK+prio paint+shaped pselect:
+| Variant | cfi pwrite | panic | root |
+|---------|------------|-------|------|
+| LOCK_SHAPE=0/1/2 | errno=22 | no | no |
+| SHIFT 13–17 × shape0 | errno=22 | no | no |
+
+Static close reasons: wait_lock adjacency on misc.name; spray-lock erase not retargeting fops; sched_setattr success ≠ store.
+
+**终局**: shell GhostLock write→root chain **closed** on #245. No open SHIFT/shape homework.
+Docs: `stages/.../10-ghostlock-true-uaf/README.md` terminal.
+Logs: implementer `run_shape*.log` `run_shift*.log`.
