@@ -50,3 +50,11 @@ leaf5/raw/kheaders/
 leaf5/raw/kheaders.tar.xz
 leaf5/raw/kernel_payload.bin
 leaf5/raw/vmlinux*
+
+# Stage builds
+leaf5/stages/build/
+leaf5/stages/**/build/
+
+# Stage probe ELF outputs (any name without extension under build/)
+leaf5/stages/**/g32_*
+leaf5/stages/**/g64_*

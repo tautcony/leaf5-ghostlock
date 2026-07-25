@@ -1,1 +1,1 @@
-# Leaf5 analysis scripts package
+"""Leaf5 analysis scripts (shims → stages/)."""

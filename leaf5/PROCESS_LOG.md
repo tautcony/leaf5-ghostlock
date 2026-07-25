@@ -690,6 +690,17 @@ waiter task: KSP0-0x2B0  (目标)
 - 探针: 仅保留 `.c` / Makefile 源码，ELF 产物 gitignore
 - 文档: 根 `README.md`、`leaf5/README.md`、`NEXT_STEPS`/`KGSL_STACK_OVERWRITE` 与终局结论对齐
 
+
+
+### 46. 流水线归档 stages/ (2026-07-25)
+
+将探针、分析脚本与 ghostlock-analysis 按利用顺序迁入 `leaf5/stages/`：
+
+- S00–S07 主阶段；S05 下 `routes/01`–`09` 并列栈覆盖候选；KGSL 再分子节点 a–g
+- 每个节点 `README.md` 记录文件级效果（成功/失败/原因）
+- `leaf5/scripts/*.py` 保留为 uv 入口 shim
+- 旧 `probes/kgsl_probe`、`ghostlock-analysis/*` 内容已迁移，目录仅留跳转说明
+
 ### 最终结论
 
 在 Onyx Leaf5 (kernel 4.19.157-perf-g3d47a6619220-dirty #245) 上，GhostLock (CVE-2026-43499) 标准利用链因内核栈布局差异而不可行。此结论基于:

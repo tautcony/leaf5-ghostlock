@@ -1,29 +1,19 @@
 # Leaf5 GhostLock 分析仓库
 
-针对 **Onyx Leaf5**（TabBoox 电纸书）的 GhostLock（CVE-2026-43499）安全研究仓库。
-
-> 本仓库**仅保留 Leaf5 相关**分析、探针与 exploit 代码。其它设备（OPPO Find N2、Xiaomi 等）与通用文档已移除。
+**Onyx Leaf5**（kernel 4.19.157）上 GhostLock（CVE-2026-43499）的专项研究仓库。
 
 ---
 
-## 结论摘要（2026-07-25）
+## 结论摘要
 
 | 项 | 状态 |
 |----|------|
-| 设备 | Onyx Leaf5 / Android 13 / kernel **4.19.157** #245 |
-| 前半链 | Kernelsnitch + heap spray + GhostLock 触发 + KGSL CFU 均已验证 ✅ |
-| 栈覆盖 | **CFU 无法覆盖 `waiter->task`** ❌（编译期栈布局，非随机） |
-| 完成度 | ~70%（到 CFU 触发；fops / physrw / root 未打通） |
+| 前半链（泄漏 / spray / GhostLock / KGSL CFU 触发） | ✅ |
+| CFU 覆盖 `waiter->task` | ❌ 栈布局位差（固定） |
+| 完成度 | ~70% |
 
-**根本原因**（详见 [`leaf5/PROCESS_LOG.md`](leaf5/PROCESS_LOG.md) 步骤 40–44）：
-
-```
-waiter->task     @ KSP0 - 0x2B0
-64-bit KGSL CFU  @ ~KSP0 - 0x228   （太浅，~88B）
-32-bit KGSL CFU  @ ~KSP0 - 0x2A0+  （太深，compat 帧无法 <24B）
-```
-
-标准 GhostLock「CFU 覆盖 stale waiter」链在此内核构建上**不可行**。
+权威过程证据：[`leaf5/PROCESS_LOG.md`](leaf5/PROCESS_LOG.md)。  
+**按阶段阅读的代码与效果表**：[`leaf5/stages/README.md`](leaf5/stages/README.md)。
 
 ---
 
@@ -31,85 +21,60 @@ waiter->task     @ KSP0 - 0x2B0
 
 ```
 .
-├── README.md                 # 本文件（入口）
-├── AGENTS.md                 # 智能体/协作约定
-├── exploit/                  # Leaf5 专用 exploit 源码（onyx-leaf5）
-│   ├── src/
-│   ├── targets/onyx-leaf5/
-│   ├── Makefile
-│   └── docker-build.sh
-└── leaf5/                    # 分析工作区（主文档与探针）
-    ├── README.md             # 分析总览
-    ├── ANALYSIS.md           # 设备与内核分析
-    ├── PROCESS_LOG.md        # 操作流水（权威过程记录）
-    ├── NEXT_STEPS.md         # 路线与后续方向
-    ├── VERIFICATION_REPORT.md
-    ├── STACK_LAYOUT.md
-    ├── docs/                 # 专题技术文档
-    ├── scripts/              # Python 采集/偏移脚本（uv）
-    ├── probes/kgsl_probe/    # KGSL / GhostLock 探针源码
-    ├── ghostlock-analysis/   # CFU 扫描、binder、do_select 等分析
-    └── raw/                  # 设备原始采集（小文本；大镜像本地保留）
+├── README.md
+├── AGENTS.md
+├── exploit/                 # Leaf5 exploit 源码（onyx-leaf5）
+└── leaf5/
+    ├── stages/              # ★ 利用/分析流水线（文档 ↔ 代码）
+    │   ├── S00 … S07
+    │   └── S05-stack-overwrite/routes/   # 并列栈覆盖候选
+    ├── scripts/             # uv CLI shim
+    ├── raw/
+    └── *.md                 # 过程/历史文档
 ```
+
+### 流水线一览
+
+| 阶段 | 内容 | 结果 |
+|------|------|------|
+| S00 | 设备画像 | ✅ |
+| S01 | 偏移与栈布局 | ✅ |
+| S02 | Kernelsnitch | ✅ |
+| S03 | Heap spray | ✅ |
+| S04 | GhostLock 触发 | ✅ |
+| S05 | 栈覆盖（多路由并列） | ❌ |
+| S06 | E2E 集成 | ⚠️ 止于 CFU |
+| S07 | fops / physrw / root | ⛔ 未达成 |
+
+每个节点目录内 `README.md` 记录该处**每个文件**的作用、成功/失败与原因。
 
 ---
 
 ## 快速使用
 
-### 分析脚本
-
 ```bash
-cd leaf5
-uv sync
-uv run leaf5-collect      # 需 adb 连接设备
-uv run leaf5-summarize
-```
+# 分析脚本
+cd leaf5 && uv sync
+uv run leaf5-collect
 
-### 编译 exploit（Docker + NDK）
+# 编译 exploit
+cd exploit && ./docker-build.sh
 
-```bash
-cd exploit
-./docker-build.sh                          # 64-bit preload.so
-./docker-build.sh arm32-pie                # 32-bit ghostlock32 PIE
-```
-
-本地 NDK：
-
-```bash
-cd exploit
-make TARGET_DIR=targets/onyx-leaf5
-make arm32-pie
-```
-
-### 编译探针
-
-```bash
-cd leaf5/probes/kgsl_probe
-# 见该目录 Makefile / README；产物为本地 ELF，不入库
+# 编译流水线探针
+cd leaf5/stages
+make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
 ```
 
 ---
 
-## 文档导读
+## 文档
 
 | 文档 | 用途 |
 |------|------|
-| [`leaf5/README.md`](leaf5/README.md) | 分析入口与状态总览 |
-| [`leaf5/PROCESS_LOG.md`](leaf5/PROCESS_LOG.md) | 全过程操作与终局证据 |
-| [`leaf5/NEXT_STEPS.md`](leaf5/NEXT_STEPS.md) | 已关闭路径与可选前进方向 |
-| [`leaf5/ANALYSIS.md`](leaf5/ANALYSIS.md) | 设备画像与内核配置 |
-| [`leaf5/docs/KGSL_STACK_OVERWRITE.md`](leaf5/docs/KGSL_STACK_OVERWRITE.md) | KGSL 栈覆盖技术笔记（以 PROCESS_LOG 终局为准） |
-
----
-
-## 本地大文件（gitignore，不提交）
-
-| 路径 | 说明 |
-|------|------|
-| `leaf5/boot_a.bin` | 与 runtime #245 匹配的 boot 镜像 |
-| `leaf5/raw/vmlinux*` | 解包/重建的内核 |
-| `leaf5/raw/kheaders/` | 设备 kheaders |
-| `leaf5/probes/**/g32_*` 等 | 编译出的探针二进制 |
+| [leaf5/stages/README.md](leaf5/stages/README.md) | **主索引（推荐）** |
+| [leaf5/README.md](leaf5/README.md) | 工作区说明 |
+| [leaf5/PROCESS_LOG.md](leaf5/PROCESS_LOG.md) | 时间线证据 |
+| [leaf5/NEXT_STEPS.md](leaf5/NEXT_STEPS.md) | 历史路线 / 剩余方向 |
 
 ---
 

@@ -26,7 +26,9 @@
 
 | 路径 | 内容 |
 |------|------|
-| `leaf5/` | 分析文档、脚本、探针源码、原始采集 |
+| `leaf5/` | 分析文档、原始采集 |
+| `leaf5/stages/` | **按利用顺序的代码与节点效果文档（主索引）** |
+| `leaf5/scripts/` | uv CLI shim → stages |
 | `exploit/` | Leaf5 专用 exploit（`targets/onyx-leaf5`） |
 
 权威结论见 `leaf5/PROCESS_LOG.md`（终局：标准 CFU 覆盖链因栈布局不可行）。

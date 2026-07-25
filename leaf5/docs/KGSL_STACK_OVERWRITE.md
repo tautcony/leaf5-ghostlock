@@ -17,7 +17,8 @@
 | 32-bit CFU 理论位置 | 相对 `waiter->task` **过深**（非完美重叠） |
 | 64-bit CFU | 可触发，相对 task **过浅 ~88B** |
 
-权威结论见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md) 步骤 40–44 与 [`../README.md`](../README.md)。  
+权威结论见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md) 步骤 40–44、[`../stages/README.md`](../stages/README.md) 与 KGSL 子节点  
+[`../stages/S05-stack-overwrite/routes/07-kgsl/`](../stages/S05-stack-overwrite/routes/07-kgsl/)。  
 下文保留调用链与结构体逆向笔记，供审计；**勿单独作为可行性结论**。
 
 ---

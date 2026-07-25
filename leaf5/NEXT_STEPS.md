@@ -1,5 +1,7 @@
 > **文档类型**: 计划文档（后续工作清单） | **状态**: ✅ 有效（终局已更新） | **最后更新**: 2026-07-25
 
+
+> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。
 # Leaf5 GhostLock — 后续分析方案
 
 **目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13  

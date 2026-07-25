@@ -24,3 +24,7 @@ probes/**/test_*
 !probes/**/*.c
 !probes/**/*.h
 !probes/**/Makefile
+
+# Stage probe build products
+stages/build/
+stages/**/build/

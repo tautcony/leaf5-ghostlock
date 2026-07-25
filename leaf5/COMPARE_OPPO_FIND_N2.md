@@ -1,5 +1,7 @@
 > **文档类型**: 结论文档 | **状态**: ✅ 有效 | **最后更新**: 2026-07-24
 
+
+> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。
 # Leaf5 vs OPPO Find N2 对比
 
 > Leaf5 侧数据：2026-07-24 真机采集（见 [ANALYSIS.md](ANALYSIS.md)）  
