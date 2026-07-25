@@ -20,6 +20,7 @@
 | `probes/ghostlock_binder_signal_cfu.c` | 信号 handler CFU | ❌ 存活 | SIGUSR1 中 CFU ret=0 |
 | `probes/test_adjtimex_cfu.c` | adjtimex 208B | ✅ CFU | bad→EFAULT；sizeof=208 |
 | `probes/ghostlock_adjtimex_cfu.c` | GhostLock+adjtimex | ❌ 存活 | 0x41 填满 [0x118,0x1e8) 含 task 槽仍无 OOPS |
+| `probes/ghostlock_live_window_cfu.c` | **阻塞窗口** live CFU | ❌ 存活 | GhostLock 后 W 仍 `S`；SIG 先 abort WAIT 再 CFU；PI unlock 无 crash |
 
 ## 静态重扫（相对 stack_top，ioctl nest 含/不含 thin wrapper）
 
@@ -52,15 +53,19 @@ GET_NODE_DEBUG_INFO ret=0，cookie=0x4141…
 sched_setattr / PI kick → 内核存活
 ```
 
-## 结论（本轮终局）
+## 结论（终局）
 
 1. **shell 可达真 CFU**：evdev、binder、**adjtimex**（EFAULT 矩阵）。
 2. **静态对齐 task@−0x168**：binder cookie；**adjtimex 208B 宽窗完整覆盖 waiter 区间 [0x138,0x178)**。
-3. **GhostLock 返回后 + 上述 CFU（含 0x41 全窗）内核仍存活**。
-4. **推断**：在 Leaf5 #245 上，`WAIT_REQUEUE_PI` **返回之后** 不存在仍被 PI 路径解引用的栈上 stale waiter 残差；post-return 栈 CFU 覆盖模型 **关闭**（非单纯“位差 88B”）。
-5. 仍阻塞时同线程无法跑 CFU；跨线程 CFU 写的是对方栈。live-stack 覆盖需其它原语。
+3. **Post-return**：GhostLock 返回后 + 0x41 宽窗 CFU → **内核存活**（残差不被解引用）。
+4. **Live blocking window**（`ghostlock_live_window_cfu`）：
+   - GhostLock 后 owner 持锁：W `/proc/tid/stat` = **`S`**，`wait_returned=0`（仍在内核阻塞）。
+   - `SIGUSR1` → WAIT 先以 errno=11 返回，**然后** handler 才 adjtimex（`post_stat=R`）。
+   - 信号路径无法在 live waiter 帧仍 nested 时执行 CFU；abort 后再写 + PI unlock **无 crash**。
+5. **架构结论**：仅靠 shell 同线程 CFU **不能**在 waiter 仍阻塞时改写其内核栈；abort/return 后残差在本机构建上 **不 live**。  
+   → GhostLock **栈覆盖提权链在 Leaf5 #245 关闭**。
 
 ## 下游
 
-- 不集成 post-return 栈 CFU 到 exploit。
-- 若继续 root：需 **非 post-return 栈残差** 路径（heap 假 waiter 需 physrw 环依赖；或 bootloader/Magisk，需用户确认）。
+- **不** 集成栈 CFU 到 exploit；**不** 宣称 root。
+- 其它 root 路径（heap physrw 环依赖、Magisk/刷写）需新原语或用户授权。

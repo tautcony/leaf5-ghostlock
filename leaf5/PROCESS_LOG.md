@@ -827,3 +827,25 @@ task:     stack_top-0x168
 
 不宣称 root。未做 Magisk/刷写。
 
+
+### 50. Live blocking-window CFU (2026-07-25)
+
+Probe: `ghostlock_live_window_cfu` (adjtimex 208B 0x41 after GhostLock while owner holds PI).
+
+Device log (abbrev):
+```
+[T] GhostLock CMP_REQUEUE_PI ret=1
+[O] before signal, W stat=... S wait_returned=0   ← still blocked
+[O] SIGUSR1 sent
+[W] WAIT returned ret=-1 errno=11 cfu_done=1      ← wait aborted first
+[W] adjtimex ret=-1 errno=1 (EPERM after CFU)
+[O] unlocked f_pi_target (PI walk)
+=== KERNEL SURVIVED ===
+```
+
+**结论**:
+1. Live window 存在（requeue 后 W 保持 `S`）。
+2. 用户态信号 **不能** 在 do_futex waiter 帧仍 nested 时跑 CFU；先 abort wait。
+3. abort 后宽窗 0x41 CFU + PI unlock 仍无 OOPS → 与 §49 一致，残差不 live。
+4. shell CFU 栈覆盖链（live 与 post-return）均 **关闭**；root 未达成。
+
