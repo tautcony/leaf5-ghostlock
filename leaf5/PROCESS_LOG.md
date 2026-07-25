@@ -782,3 +782,32 @@ task:     stack_top-0x168
 2. drmrpc 进程注入打开 `/dev/qce` 仅当深度也对齐新 waiter 后再投
 3. 禁止用 flags=0 ghostlock64 当栈覆盖证据
 
+
+### 48. Round — re-score @ −0x168 + binder/evdev shell CFU (2026-07-25)
+
+**uname**: 4.19.157 #245 g3d47a6619220 match.
+
+#### Rescore
+- Target: `task @ stack_top-0x168` (do_futex waiter).
+- Direct syscalls (timer_create/setitimer/fcntl/…): CFU 均浅于 0x168。
+- Device ioctl 含 thin wrapper 时需 +0x10。
+
+#### evdev
+- shell 在组 `input`；`/dev/input/event*` **O_RDONLY** OK，O_RDWR EACCES。
+- `EVIOCGKEYCODE_V2` bad ptr → **EFAULT**（CFU）。
+- 链：sys_ioctl+do_vfs+**evdev_ioctl(0x10)**+handler(0xa0) → CFU @ −0x178（**过深 0x10**）。
+- GhostLock+evdev：存活。
+
+#### binder（主候选）
+- `/dev/binder` shell OPEN_RDWR。
+- `binder_ioctl` frame 0xa0，CFU **0x18 @ SP+0x10** → abs **[0x160,0x178)**，**覆盖 task@0x168**（cookie@+8）。
+- `GET_NODE_DEBUG_INFO` / `GET_NODE_INFO_FOR_REF` / `WRITE_READ`48：bad → **EFAULT**。
+- GhostLock + GET_NODE_DEBUG_INFO（timeout 与 quick-unlock 两变体）：**ioctl OK，内核存活**。
+
+#### 解释（暂定）
+静态对齐的 shell CFU 已找到，但 GhostLock 返回后 PI/crash 无副作用 → 残差 waiter 可能在返回路径被清掉，或绝对深度仍有公共帧偏差。不宣称 cover。
+
+#### 产物
+- probes: test_evdev_cfu, ghostlock_evdev_cfu, test_binder_cfu, ghostlock_binder_cfu, ghostlock_binder_wake_cfu
+- stages/08 README 更新
+

@@ -49,7 +49,7 @@
 | 05 全局 CFU 扫描 | [routes/05-global-cfu-scan](S05-stack-overwrite/routes/05-global-cfu-scan/) | ✅ 分析 | 发现候选；落地另见 |
 | 06 qcedev | [routes/06-qcedev](S05-stack-overwrite/routes/06-qcedev/) | ❌ | 位置 theoretically 对，权限 drmrpc |
 | 07 kgsl | [routes/07-kgsl](S05-stack-overwrite/routes/07-kgsl/) | ⚠️ | 见子节点；无 task 覆盖 |
-| 08 其它设备 | [routes/08-alt-devices](S05-stack-overwrite/routes/08-alt-devices/) | ❌ | DRM SELinux；uinput 位差 |
+| 08 其它设备 | [routes/08-alt-devices](S05-stack-overwrite/routes/08-alt-devices/) | ⚠️ | binder 静态 HIT@−0x168 + EFAULT；GhostLock 后无 crash（见节点） |
 | 09 加深 syscall | [routes/09-alt-syscall-depth](S05-stack-overwrite/routes/09-alt-syscall-depth/) | ❌ | writev/sendmsg/splice 无自然覆盖 |
 
 ### KGSL 子节点（07）
@@ -121,4 +121,4 @@ KGSL list CFU（flags2@+0x18 bit2）可达但 ~stack_top-0x308，过深 ~0x1A0�
 旧 flags=0 探针从未 list-CFU 拷贝 ibdesc。
 ```
 
-*流水线终局：标准 GhostLock + KGSL list CFU 在 Leaf5 4.19.157 #245 上因栈深度不匹配仍不可行；下一步以 −0x168 重扫更浅 shell 可达 CFU（uinput 近失配 ~0x28）。*
+*2026-07-25 晚：shell 可达 binder `GET_NODE_DEBUG_INFO` 静态覆盖 task@−0x168 且 EFAULT 证明 CFU；GhostLock 后仍无 cover 副作用。下一步：残差存活性 / 阻塞窗口信号 CFU，勿假称 root。*
