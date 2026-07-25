@@ -122,11 +122,22 @@ pselect 侧字段布局（popsicle `fops.c`）：waiter words 含 `task`/`lock`/
 | `ghostlock_uaf_reclaim_consumer` | ✅ **kernel_panic** | EDEADLK→timeout→adjtimex→consumer 后掉线；`bootreason=kernel_panic,null` |
 
 **Outcome 4A**: 真 GhostLock 悬空 `pi_blocked_on` 可 priming；返回后 CFU 回收 + `sched_setattr` 解引用可控内容 → **panic**。  
-**未完成**: shaped fake → 稳定受限写 / root（0x41 仅证明 live）。
+
+### Shaped 集成（exploit，§52）
+
+| 步 | 状态 |
+|----|------|
+| EDEADLK in `preload` | ✅ errno=35 |
+| pselect words 0–7 + SHIFT=15 | ✅ |
+| `task=init_task`（修 kaslr_base） | ✅ |
+| `lock=target-8` / misc.fops+0x10 | ✅ 布局 |
+| sched_setattr success | ✅ 无 panic |
+| fops 劫持 / configfs write | ❌ pwrite EINVAL |
+| root | ❌ |
 
 ## 8. 下游
 
-1. KernelSnitch slide + spray 页构造合法 fake waiter（`task=init_task` 等）。
-2. T3 用 pselect **SHIFT=15** 或 adjtimex 宽窗。
-3. 接 popsicle `direct_root` / `exploit/` fops。
+1. 验证 rb_erase 写是否发生（读回 `ashmem_misc.fops` 或故意坏指针 OOPS）。
+2. SHIFT 运行时二分；`PSELECT_LOCK_FAKE=1` 对照。
+3. 写命中后走既有 `try_cfi_stage` → pipe physrw → root。
 4. **禁止**将 `CMP ret=1` 当作 GhostLock 成功。
