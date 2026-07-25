@@ -34,7 +34,7 @@
 | S02 | [kernelsnitch-leak](S02-kernelsnitch-leak/) | ✅ | mm_struct 泄漏 |
 | S03 | [heap-spray](S03-heap-spray/) | ✅ | sk_buff reclaim |
 | S04 | [ghostlock-trigger](S04-ghostlock-trigger/) | ✅ | FUTEX_CMP_REQUEUE_PI 产生 stale waiter |
-| S05 | [stack-overwrite](S05-stack-overwrite/) | ⚠️ | 旧「成功 requeue+CFU」模型关闭；**真 UAF（EDEADLK+reclaim）OPEN** 见 10 |
+| S05 | [stack-overwrite](S05-stack-overwrite/) | ⛔ | 旧 CFU 模型关闭；真 UAF EDEADLK/panic 已证；**shell 写链终局 B 关闭**（见 10） |
 | S06 | [e2e-chain](S06-e2e-chain/) | ⚠️ | 集成链到 CFU 触发；无 fops 覆盖 |
 | S07 | [post-cfu](S07-post-cfu/) | ⛔ | 依赖 S05 成功，未打通 |
 

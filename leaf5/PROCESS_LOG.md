@@ -905,7 +905,7 @@ EDEADLK ✅ → pselect shaped ✅ → sched_setattr success=1 ✅
 cfi pwrite errno=22 ❌（fops 未劫持）→ root=0
 ```
 
-**阻塞**: 4.19 上 constrained write 仍未命中。下一步：SHIFT 二分 / 写路径对照 / `PSELECT_LOCK_FAKE=1`。
+**状态**: 中间结果。开放「SHIFT 二分 / LOCK_FAKE」**已被 §53 终局 B 取代**（有界矩阵已跑完并关闭）。
 
 
 ### 53. Terminal B — shell write matrix closed (2026-07-26)

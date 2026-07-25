@@ -41,19 +41,20 @@
 
 | 假设 | 参数 | 写命中 | 证据 |
 |------|------|--------|------|
-| prio 粉刷 + shape0 parent=target−8 | SHIFT=15, LOCK_SHAPE=0 | ❌ errno=22 | `{SCRATCH}/run_shape0.log` / `run_shift15.log` |
-| null-parent root → spray waiters | LOCK_SHAPE=1 | ❌ errno=22 | `run_shape1.log` |
-| legacy parent=value left=target | LOCK_SHAPE=2 | ❌ errno=22 | `run_shape2.log` |
-| SHIFT 带 | 13,14,15,16,17 × shape0 | ❌ 全 22 | `run_shift{13..17}.log` |
+| **`residual.lock = target−8`**（fops−8 当 wait_lock） | prio 粉刷；`ex2=…3970f70` | ❌ errno=22 | `run_prio_paint.log`：`ex2=ffffff8003970f70`（= data fops−8 / name 槽），EDEADLK✅，sched_setattr success=1，cfi pwrite 22 |
+| **`residual.lock = fake_lock`**（spray wait_lock=0） | LOCK_SHAPE=0 parent=target−8\|1 | ❌ errno=22 | `run_shape0.log`：`ex2=fake_lock`，`out5=…0f71`，cfi 22 |
+| null-parent root → spray waiters | LOCK_SHAPE=1（fake_lock） | ❌ errno=22 | `run_shape1.log` |
+| legacy parent=value left=target | LOCK_SHAPE=2（fake_lock） | ❌ errno=22 | `run_shape2.log` |
+| SHIFT 带 | 13–17 × shape0 | ❌ 全 22 | `run_shift{13..17}.log` |
 | shape1 复测存活 | LOCK_SHAPE=1 | ❌ 无 OOPS/无写 | `run_shape1_surv.log` |
 | 0x41 宽窗+consumer（对照） | adjtimex | panic only | §51 `ghostlock_uaf_reclaim_consumer` |
 
-**静态原因（关闭写链，非“待分析”）**:
+**关闭原因（设备行 + 静态，非待办）**:
 
-1. **`rt_mutex_adjust_pi` [BIN]** 读 `waiter+0x40/0x48`；未粉刷时可能 early-exit（已粉刷 prio=0x82 仍无写）。
-2. **`lock=target-8` 叠在 `ashmem_misc.name` 上当 wait_lock** → trylock 失败，无法在 fops 槽上做 root 写。
-3. **`lock=fake_lock`（wait_lock=0）** 时 erase 写落在 **spray 页 waiters**，不是 `ashmem_misc.fops`；CFI 仍失败。
-4. **`sched_setattr success=1` ≠ store**；全矩阵无 fops 读回/CFI 成功，也无 shape 导致的可控 OOPS 写证。
+1. **target−8 行**：设备 `ex2=…0f70` 已装 `lock=target−8`；`ashmem_misc.name` 作 wait_lock → trylock 失败路径，CFI 仍 22。  
+2. **fake_lock 行**：wait_lock=0 可进 walk（success=1），erase 写不落在 `ashmem_misc.fops`，CFI 仍 22。  
+3. **prio@+0x40 [BIN]** 已粉刷 0x82 仍无写命中。  
+4. **`sched_setattr success=1` ≠ store**；无 fops 读回成功、无 uid=0。
 
 ## 5. 终局判定
 
