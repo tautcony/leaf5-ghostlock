@@ -1,20 +1,34 @@
-> **文档类型**: 技术文档 | **状态**: ✅ 有效 | **最后更新**: 2026-07-24
+> **文档类型**: 技术文档 | **状态**: ⚠️ 历史分析 + 终局勘误 | **最后更新**: 2026-07-25
 
 # KGSL Compat IOCTL 栈覆盖 — 技术文档
 
-**漏洞**: CVE-2026-43499 (GhostLock)
-**目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157
-**路由**: 32-bit compat ioctl → `/dev/kgsl-3d0` → `kgsl_drawobj_cmd_add_ibdesc_list`
+**漏洞**: CVE-2026-43499 (GhostLock)  
+**目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157  
+**路由**: KGSL `/dev/kgsl-3d0` → `RB_ISSUEIBCMDS` / 相关 submit 路径
+
+### 终局勘误（2026-07-25）
+
+早期章节按「32-bit 16B CFU @ abs -0x328 与 waiter task 完美重叠」推算；  
+**设备实测与精确帧重算后**：
+
+| 路径 | 结果 |
+|------|------|
+| 32-bit `RB_ISSUEIBCMDS` | compat dispatch 拒绝，**无法到达** CFU |
+| 32-bit CFU 理论位置 | 相对 `waiter->task` **过深**（非完美重叠） |
+| 64-bit CFU | 可触发，相对 task **过浅 ~88B** |
+
+权威结论见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md) 步骤 40–44 与 [`../README.md`](../README.md)。  
+下文保留调用链与结构体逆向笔记，供审计；**勿单独作为可行性结论**。
 
 ---
 
 ## 一、概述
 
-qcedev_ioctl 路由因 `/dev/qce` 权限阻塞（0660 system:drmrpc）不可用。通过对全局 CFU 扫描结果（143 个 FULL 覆盖候选）的逐一分析，确认唯一可行路由为 kgsl compat ioctl：
+qcedev_ioctl 路由因 `/dev/qce` 权限阻塞（0660 system:drmrpc）不可用。全局 CFU 扫描后曾聚焦 kgsl compat ioctl：
 
-- `/dev/kgsl-3d0`: **0666 世界可读写**，shell 可直接 open
-- 必须编译为 **32-bit ARM** 以触发 `TIF_32BIT` → 16B CFU 路径
-- 16 字节 `struct kgsl_ibdesc` 覆盖 waiter TASK 指针（+0x30）
+- `/dev/kgsl-3d0`: **0666**，shell 可 open
+- 32-bit ARM 触发 `TIF_32BIT` → 16B CFU 路径（理论）
+- 实际：32-bit issueibcmds 被 compat 表拒绝；64-bit 可触发但位差不匹配
 
 ---
 

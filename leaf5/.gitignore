@@ -1,10 +1,26 @@
 # Large / regenerable artifacts (do not commit)
 raw/kernel_payload.bin
 raw/vmlinux_try
+raw/vmlinux
+raw/vmlinux_extracted
+raw/vmlinux.elf
+raw/vmlinux_abs.elf
+raw/vmlinux*
 raw/kheaders/
 raw/kheaders.tar.xz
+boot_a.bin
 __pycache__/
 .venv/
 *.pyc
 .DS_Store
 uv.lock
+
+# Probe build products
+probes/**/g32_*
+probes/**/g64_*
+probes/**/kgsl_probe
+probes/**/kgsl_ghostlock_poc
+probes/**/test_*
+!probes/**/*.c
+!probes/**/*.h
+!probes/**/Makefile

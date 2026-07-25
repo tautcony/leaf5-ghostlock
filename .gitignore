@@ -2,33 +2,51 @@
 *.so
 *.o
 *.a
+*.pyc
+__pycache__/
 
-# Embedded binaries (generated, not committed)
-exploit/build/embed/
-
-# Test program binaries
+# Exploit build outputs (regenerate with make / docker-build)
+exploit/build/
+exploit/assets/
+exploit/preload.so
+exploit/preload32.so
+exploit/ghostlock32
 exploit/test-programs/test_*
 !exploit/test-programs/*.c
 
-# Assets (placeholder, not committed)
-exploit/assets/
+# Probe / test ELF binaries (sources only in git)
+leaf5/probes/**/g32_*
+leaf5/probes/**/g64_*
+leaf5/probes/**/kgsl_probe
+leaf5/probes/**/kgsl_ghostlock_poc
+leaf5/probes/**/test_*
+!leaf5/probes/**/*.c
+!leaf5/probes/**/*.h
+!leaf5/probes/**/Makefile
+
+# Python envs
+.venv/
+leaf5/.venv/
+leaf5/uv.lock
 
 # NDK
 /tmp/ndk_extract/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Kernel extracted files
+# Kernel images and extracted binaries (keep local only)
 vmlinux*
 boot*.img
-
 *.bin
+leaf5/raw/kheaders/
+leaf5/raw/kheaders.tar.xz
+leaf5/raw/kernel_payload.bin
+leaf5/raw/vmlinux*

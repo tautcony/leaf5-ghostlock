@@ -1,4 +1,4 @@
-> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-07-24
+> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-07-25
 
 # Leaf5 分析过程流水（2026-07-24）
 
@@ -678,6 +678,17 @@ waiter task: KSP0-0x2B0  (目标)
 **测试结果**: 内核存活 — writev(64K) / sendmsg(64K) / splice(64K) 均无法自然覆盖 waiter 位置。
 
 **结论**: 常见的深度内核路径 (pipe write, socket sendmsg, splice) 的栈帧深度不足以覆盖此设备上 GhostLock waiter 的位置 (KSP0-0x2B0)。需要 ~0x2B0 字节以上的栈帧深度加上可控数据写入，满足此条件的用户态可达路径在此内核上不存在。
+
+
+
+### 45. 仓库整理为 Leaf5-only (2026-07-25)
+
+将仓库收敛为 **仅 Leaf5 分析内容**：
+
+- 移除: `docs/`、`analysis-scripts/`、`exploit-server/`、`test-programs/`、多设备 targets、根目录测试二进制、`.github`、`.mimocode`、FAQ 等
+- 保留: `leaf5/` 分析工作区 + `exploit/`（仅 `targets/onyx-leaf5`）
+- 探针: 仅保留 `.c` / Makefile 源码，ELF 产物 gitignore
+- 文档: 根 `README.md`、`leaf5/README.md`、`NEXT_STEPS`/`KGSL_STACK_OVERWRITE` 与终局结论对齐
 
 ### 最终结论
 

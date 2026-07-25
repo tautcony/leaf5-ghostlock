@@ -1,25 +1,42 @@
-> **文档类型**: 计划文档（后续工作清单） | **状态**: ✅ 有效 | **最后更新**: 2026-07-24
+> **文档类型**: 计划文档（后续工作清单） | **状态**: ✅ 有效（终局已更新） | **最后更新**: 2026-07-25
 
 # Leaf5 GhostLock — 后续分析方案
 
-**目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13
+**目标**: Onyx Leaf5 (TabBoox), kernel 4.19.157, Android 13  
 **漏洞**: CVE-2026-43499 (GhostLock)
-**当前阶段**: GPU context 创建已突破 ✅，命令提交待解决 🔄，KGSL 路线重新激活
+
+### 终局结论（2026-07-25）— 请先读此节
+
+| 项 | 状态 |
+|----|------|
+| 前半链（Kernelsnitch / spray / GhostLock / KGSL CFU 触发） | ✅ 已验证 |
+| CFU 覆盖 `waiter->task` | ❌ **栈布局位差，标准链关闭** |
+| 完成度 | ~70% |
+| 权威证据 | [`PROCESS_LOG.md`](PROCESS_LOG.md) 步骤 40–44 |
+
+```
+waiter->task @ KSP0-0x2B0
+64-bit CFU   @ ~KSP0-0x228  （太浅 ~88B）
+32-bit CFU   @ ~KSP0-0x2A0+ （太深）
+```
+
+下文历史阶段记录（GPU context 阻塞、qcedev 乐观估计、32-bit 完美重叠等）**保留作审计**，与终局冲突时以本节与 PROCESS_LOG 为准。  
+剩余可选方向见 **十二-G**。
 
 ---
 
 ## 一、当前状态总览
 
-### 1.0 本次会话进展 (2026-07-24 续)
+### 1.0 会话进展摘要 (2026-07-24 → 2026-07-25)
 
 | 发现 | 状态 | 影响 |
 |------|------|------|
 | personality(PER_LINUX32) 不触发 TIF_32BIT | ❌ 废案 | Path A 不可行 |
-| 32-bit FUTEX 操作正常 | ✅ | GhostLock 竞态可在 32-bit 触发 |
-| 32-bit KGSL ioctl dispatch 正常 | ✅ | 命令分派到 handler |
-| GhostLock 竞态触发成功 | ✅ | FUTEX_CMP_REQUEUE_PI ret=1 |
-| GPU context 创建失败 | ❌ 阻塞 | CFU 路径无法到达 |
-| 32-bit 构建修复（地址截断等） | ⚠️ 部分 | 编译通过但 Kernelsnitch 仍崩溃 |
+| 32-bit FUTEX / GhostLock 触发 | ✅ | 竞态可触发 |
+| GPU context（flags=0x12） | ✅ | 后续已突破 |
+| 64-bit RB_ISSUEIBCMDS CFU | ✅ 触发 / ❌ 覆盖 task | 位差 ~88B |
+| 32-bit RB_ISSUEIBCMDS | ❌ compat 拒绝 | 理论重叠路径不可达 |
+| 标准链总体 | ❌ 关闭 | 见终局结论 |
 
 ### 1.1 已完成（不可逆）
 
