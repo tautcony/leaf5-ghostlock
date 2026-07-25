@@ -719,3 +719,10 @@ waiter task: KSP0-0x2B0  (目标)
 - EDL 独立为 `edl/`：**只读提取**流程；删除 P6 Pro Magisk/改镜像指南
 - 移除空 stub：`probes/`、`ghostlock-analysis/`（内容已在 stages）
 - 入口：`leaf5/README.md` + `docs/README.md` + `edl/README.md`
+
+### 46. 全量复测（2026-07-25）
+
+- Docker-only NDK：stages 探针 90/92 初编通过；修 `test_egl`（headers + pie/ldl）、`test_kernelsnitch_minimal` 非阻塞 futex、`test_ctx_flags` 补测 0x12
+- 设备 #245：`test_mm_leak` FOUND mm；GhostLock requeue ret=1；64-bit CFU ret=0 内核存活；32-bit RB_ISSUEIBCMDS 全 EINVAL；qce/DRM 权限失败；ctx 0x12=OK
+- 文档 CORRECTED：S02 stages 探针≠真泄漏；S03 无 stage sk_buff 探针；S04 无独立二进制（见 e2e）
+- 报告：`docs/REVERIFY_2026-07-25.md`

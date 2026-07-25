@@ -12,7 +12,7 @@
 | `probes/test_kgsl_sequence.c` | 32 | 属性/序列组合 | ⚠️ | 多 SETPROP 仍不够时已过时（后发现 0x12） |
 | `probes/test_compat_cmd.c` | 32 | SETPROP compat 码 | ✅ 可达 | errno 因 type 而异 |
 | `probes/test_full_init.c` | 32 | 完整 init 尝试 | ⚠️ | 历史 |
-| `probes/test_egl.c` | 32 | EGL 依赖探测 | ❌/受限 | 无完整用户态驱动时有限 |
+| `probes/test_egl.c` | 32 | EGL 依赖探测 | ⚠️ 受限 | 需 `-pie -ldl`（非 static）；无完整用户态驱动时有限 |
 | `analysis/kgsl-ioctl-scan.py` | host | ioctl 表扫描 | ✅ | |
 | `analysis/kgsl-deep-analysis.py` | host | 深度逆向辅助 | ✅ | |
 | `analysis/kgsl-final-analysis.py` | host | 汇总 | ✅ | |

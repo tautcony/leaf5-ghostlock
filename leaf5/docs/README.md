@@ -12,6 +12,7 @@
 | [ANALYSIS.md](ANALYSIS.md) | 2026-07-24 设备从零采集与画像；§8 偏移结果仍可查 |
 | [STACK_LAYOUT.md](STACK_LAYOUT.md) | futex/waiter 栈帧（vmlinux 反汇编） |
 | [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md) | KernelSnitch / spray / 偏移 bug 修复快照 |
+| [REVERIFY_2026-07-25.md](REVERIFY_2026-07-25.md) | **全量编译 + 设备复测**对照表与 CORRECTED |
 | [COMPARE_OPPO_FIND_N2.md](COMPARE_OPPO_FIND_N2.md) | Leaf5 4.19 vs OPPO Find N2 5.10 |
 | [KGSL_STACK_OVERWRITE.md](KGSL_STACK_OVERWRITE.md) | KGSL 调用链笔记 + **终局勘误** |
 | [NEXT_STEPS.md](NEXT_STEPS.md) | 历史路线矩阵与剩余可选方向（含乐观中间态） |

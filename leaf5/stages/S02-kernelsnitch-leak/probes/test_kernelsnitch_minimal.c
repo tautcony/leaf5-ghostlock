@@ -39,16 +39,15 @@ int main(void) {
     }
     printf("  OK at %p\n", p);
     
-    /* Step 2: Test futex on the mmap'd memory */
+    /* Step 2: Test futex on the mmap'd memory (non-blocking) */
     printf("Testing futex...\n");
     unsigned int *futex_addr = (unsigned int*)p;
-    *futex_addr = 0;
-    
-    /* FUTEX_WAIT_PRIVATE */
+    *futex_addr = 1; /* mismatch → WAIT returns immediately (EAGAIN) */
+    errno = 0;
     long r = kfutex(futex_addr, FUTEX_WAIT_PRIVATE, 0, NULL, NULL, 0);
-    /* This should block — kill from another thread? */
-    
-    /* Instead, test FUTEX_WAKE */
+    printf("  FUTEX_WAIT (val mismatch): ret=%ld errno=%d\n", r, errno);
+
+    *futex_addr = 0;
     r = kfutex(futex_addr, FUTEX_WAKE_PRIVATE, 1, NULL, NULL, 0);
     printf("  FUTEX_WAKE: ret=%ld errno=%d\n", r, errno);
     

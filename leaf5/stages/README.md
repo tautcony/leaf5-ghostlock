@@ -1,13 +1,27 @@
-> **文档类型**: 流水线索引 | **状态**: ✅ 有效 | **最后更新**: 2026-07-25
+> **文档类型**: 流水线索引 | **状态**: ✅ 有效 | **最后更新**: 2026-07-25（设备复测）
 
 # Leaf5 利用 / 分析流水线（stages）
 
 代码与文档按 **分析与利用先后顺序** 分阶段归档；同一阶段的多条候选路径以子目录并列。  
 每个节点的 `README.md` 记录：**目标 → 代码清单 → 效果（成功/失败）→ 原因 → 下游依赖**。
 
-权威时间线证据仍见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md)。
+权威时间线证据仍见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md)。  
+**2026-07-25 全量编译 + 设备复测**：[`../docs/REVERIFY_2026-07-25.md`](../docs/REVERIFY_2026-07-25.md)。
 
 参考文档与归档：[`../docs/README.md`](../docs/README.md)。EDL 镜像提取：[`../edl/README.md`](../edl/README.md)。
+
+### 代码形态说明（避免「只有文档」误解）
+
+| 阶段/路由 | 可执行代码 | 说明 |
+|-----------|------------|------|
+| S00–S01 | Python | 离线/adb 采集与反汇编，无 C 探针 |
+| S02 stages `probes/` | 组件 C | **完整 mm 泄漏**在 `exploit/test-programs/` |
+| S03 | shell + exploit | **无** stage 本地 sk_buff C；主路径 `heap_spray.c` |
+| S04 | 无本目录 `.c` | 触发嵌在 S05 `ghostlock*.c` / exploit |
+| S05-01/04/06 | 分析/权限 | 无成功 PoC（结论为关闭） |
+| S05-02/03/05 | Python 分析 | 静态为主 |
+| S05-07–09 | C 探针 | 本轮已 Docker 编译并设备抽测 |
+| S06–S07 | 映射 exploit | 无独立 stages 二进制 |
 
 ---
 

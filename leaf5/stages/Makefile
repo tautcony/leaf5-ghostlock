@@ -112,9 +112,21 @@ ifneq ($(SRC),)
 	@test -n "$(CC)" && test -f "$(CC)" || (echo "Error: clang not found under $(TOOLCHAIN)"; exit 1)
 endif
 
+# test_egl needs dynamic linking for libdl; others stay static.
+EXTRA_CFLAGS =
+EXTRA_LDFLAGS =
+ifneq ($(findstring test_egl.c,$(SRC)),)
+  EXTRA_CFLAGS = -fPIE
+  EXTRA_LDFLAGS = -pie -ldl
+  # non-static: dlopen(libEGL) at runtime
+  LINK_MODE =
+else
+  LINK_MODE = -static
+endif
+
 $(OUT): $(SRC_ABS) | check
 	@mkdir -p "$(OUT_DIR)"
-	$(CC) -static -O2 -Wall -pthread "$<" -o "$@"
+	$(CC) $(LINK_MODE) -O2 -Wall -pthread $(EXTRA_CFLAGS) "$<" -o "$@" $(EXTRA_LDFLAGS)
 
 REMOTE_DIR = /data/local/tmp/stages/$(SRC_REL_DIR)$(ARCH_TAG)
 REMOTE_BIN = $(REMOTE_DIR)/$(BASENAME)

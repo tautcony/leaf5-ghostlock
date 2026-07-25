@@ -22,10 +22,16 @@ int main(void) {
     if (fd < 0) { printf("ERROR: open failed\n"); return 1; }
     printf("fd=%d\n", fd);
 
+    /* Documented success on Leaf5: PREAMBLE|NO_GMEM_ALLOC = 0x12 */
     uint32_t flag_tests[] = {
-        0, KGSL_CONTEXT_TYPE_GL, KGSL_CONTEXT_TYPE_CL, KGSL_CONTEXT_TYPE_VK,
+        0,
+        KGSL_CONTEXT_PREAMBLE,                          /* 0x10 alone */
+        KGSL_CONTEXT_NO_GMEM_ALLOC,                     /* 0x02 alone */
+        KGSL_CONTEXT_PREAMBLE | KGSL_CONTEXT_NO_GMEM_ALLOC, /* 0x12 */
+        0x12u,
+        KGSL_CONTEXT_TYPE_GL, KGSL_CONTEXT_TYPE_CL, KGSL_CONTEXT_TYPE_VK,
         KGSL_CONTEXT_TYPE_GL | 0x2, KGSL_CONTEXT_TYPE_GL | KGSL_CONTEXT_PREAMBLE,
-        KGSL_CONTEXT_NO_GMEM_ALLOC, 0x00100001u, 0x20000000u,
+        0x00100001u, 0x20000000u,
     };
 
     for (int i = 0; i < sizeof(flag_tests)/sizeof(flag_tests[0]); i++) {
