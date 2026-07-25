@@ -54,6 +54,7 @@
 
 ## 编译探针
 
+**NDK 只走 Docker**（`ghostlock-build`，与 exploit 同镜像），本机不装 NDK。  
 产物写入仓库根 **`out/stages/`**，路径镜像本树 + 架构子目录（**不入库**）：
 
 ```
@@ -63,11 +64,11 @@ out/stages/<相对 stages 的源码目录>/{arm32|arm64}/<basename>
 ```bash
 cd leaf5/stages
 make help
-make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
+make docker-build SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
 # → ../../../out/stages/S05-.../probes/arm64/ghostlock64_opt
 
-make NODE=S02-kernelsnitch-leak BITS=32   # 批量
-make SRC=... deploy                       # adb → /data/local/tmp/stages/...
+make docker-build NODE=S02-kernelsnitch-leak BITS=32   # 批量
+make deploy SRC=... BITS=...                           # 本机 adb（先 docker-build）
 make list-out
 ```
 

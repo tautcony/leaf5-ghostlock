@@ -7,7 +7,10 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = next(
+    p for p in Path(__file__).resolve().parents
+    if (p / "raw").is_dir() and (p / "stages").is_dir()
+)
 CFG = ROOT / "raw" / "kernel_config.txt"
 
 FOCUS = [

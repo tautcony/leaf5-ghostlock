@@ -1,17 +1,23 @@
 # Leaf5 stage probe builder
 #
-# Outputs (clearly namespaced by stage path + arch):
+# NDK 编译统一走 Docker 镜像 ghostlock-build（与 exploit/ 相同），本机不安装 NDK。
+#
+# Outputs:
 #   <repo>/out/stages/<path-of-SRC-dir>/<arm32|arm64>/<basename>
 #
-# Usage (from leaf5/stages/):
-#   make SRC=S02-kernelsnitch-leak/probes/test_ks_minimal.c
-#   make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
-#   make NODE=S02-kernelsnitch-leak          # build every .c under NODE
-#   make SRC=... deploy
-#   make clean                              # wipe <repo>/out/stages
+# Host usage:
+#   make docker-build SRC=S02-kernelsnitch-leak/probes/test_ks_minimal.c
+#   make docker-build SRC=.../ghostlock64_opt.c BITS=64
+#   make docker-build NODE=S02-kernelsnitch-leak BITS=32
+#   make docker-build SRC=... && make deploy SRC=...   # adb 在本机
 #
-# BITS=32 → armv7a static (TIF_32BIT path)
-# BITS=64 → aarch64 static
+# In-container (NDK already mounted):
+#   make SRC=... BITS=32|64
+#   make NODE=S0x-... BITS=32
+#
+# BITS=32 → armv7a static | BITS=64 → aarch64 static
+
+.DEFAULT_GOAL := auto
 
 SRC   ?=
 BITS  ?= 32
@@ -22,22 +28,13 @@ LEAF5_DIR  := $(abspath $(STAGES_DIR)/..)
 REPO_ROOT  := $(abspath $(LEAF5_DIR)/..)
 OUT_ROOT   := $(REPO_ROOT)/out/stages
 
-# ── NDK ───────────────────────────────────────────────────────────
-NDK ?= $(shell ls -d /tmp/ndk_extract/android-ndk-r29 2>/dev/null || \
-            ls -d $(HOME)/Library/Android/android-ndk-r29 2>/dev/null || \
-            ls -d /usr/local/Caskroom/android-ndk/29/AndroidNDK*.app/Contents/NDK 2>/dev/null | head -1 || \
-            ls -d $(HOME)/android-ndk-r29 2>/dev/null || \
-            ls -d $(ANDROID_NDK_HOME) 2>/dev/null || \
-            ls -d $(ANDROID_SDK_ROOT)/ndk/29* 2>/dev/null | head -1 || \
-            ls -d $(ANDROID_HOME)/ndk/29* 2>/dev/null | head -1)
+IMAGE_NAME ?= ghostlock-build
+DOCKERFILE := $(REPO_ROOT)/exploit/Dockerfile
 
-_HOST_OS := $(shell uname -s)
-ifeq ($(_HOST_OS),Darwin)
-  NDK_HOST_TAG ?= darwin-x86_64
-else
-  NDK_HOST_TAG ?= linux-x86_64
-endif
-
+# ── NDK: container only (ANDROID_NDK_HOME) or explicit NDK= ────────
+# Do NOT scan host Homebrew / Caskroom / local SDK paths.
+NDK ?= $(ANDROID_NDK_HOME)
+NDK_HOST_TAG ?= linux-x86_64
 TOOLCHAIN = $(NDK)/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)
 
 ifeq ($(BITS),64)
@@ -54,7 +51,6 @@ else
   endif
 endif
 
-# Resolve SRC → out path mirroring stage tree
 SRC_ABS      = $(abspath $(SRC))
 SRC_REL      = $(patsubst $(STAGES_DIR)/%,%,$(SRC_ABS))
 SRC_REL_DIR  = $(dir $(SRC_REL))
@@ -62,65 +58,87 @@ BASENAME     = $(basename $(notdir $(SRC)))
 OUT_DIR      = $(OUT_ROOT)/$(SRC_REL_DIR)$(ARCH_TAG)
 OUT          = $(OUT_DIR)/$(BASENAME)
 
-.PHONY: all clean deploy check help node-all list-out
+.PHONY: help auto all check build node-all deploy list-out clean \
+        docker-build ensure-image
 
 help:
 	@echo "Leaf5 stage probes → $(OUT_ROOT)/<stage-path>/$(ARCH_TAG)/<name>"
 	@echo ""
-	@echo "  make SRC=<path-to.c> [BITS=32|64]   build one probe"
-	@echo "  make NODE=<S0x-...> [BITS=32|64]    build all .c under node"
-	@echo "  make SRC=... deploy                 adb push to /data/local/tmp/stages/..."
-	@echo "  make list-out                       show built binaries"
-	@echo "  make clean                          remove $(OUT_ROOT)"
+	@echo "  Host (auto Docker NDK — do not install local NDK):"
+	@echo "    make SRC=<path-to.c> [BITS=32|64]     # → docker-build"
+	@echo "    make NODE=<S0x-...> [BITS=32|64]"
+	@echo "    make docker-build SRC=...             # explicit"
+	@echo "    make deploy SRC=... [BITS=...]        # host adb after build"
+	@echo ""
+	@echo "  In-container: same make SRC=... uses image NDK directly"
+	@echo "  make list-out | clean"
 
-# Default goal: single SRC, or NODE batch
-ifeq ($(SRC),)
-  ifneq ($(NODE),)
-all: node-all
-  else
-all:
+# Host without NDK → docker-build; container with NDK → native build
+auto:
+ifeq ($(SRC)$(NODE),)
+	@$(MAKE) help
+else ifneq ($(wildcard $(NDK)/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)),)
+	@$(MAKE) build
+else
+	@$(MAKE) docker-build
+endif
+
+# In-container / with NDK: make SRC=...  or  make NODE=...
+all: build
+
+build:
+ifneq ($(NODE),)
+	@$(MAKE) node-all
+else ifneq ($(SRC),)
+	@$(MAKE) check $(OUT)
+	@echo "OK  $(OUT)"
+	@ls -lh "$(OUT)"
+	@-command -v file >/dev/null 2>&1 && file "$(OUT)" || true
+else
 	@echo "Usage: make SRC=path/to/file.c [BITS=32|64]"
 	@echo "   or: make NODE=S0x-name [BITS=32|64]"
 	@exit 1
-  endif
-else
-all: check $(OUT)
-	@echo "OK  $(OUT)"
-	@file "$(OUT)"
 endif
 
 check:
-	@test -n "$(SRC)" || (echo "Usage: make SRC=path/to/file.c [BITS=32|64]"; exit 1)
+	@if [ -z "$(NDK)" ] || [ ! -d "$(NDK)" ]; then \
+	  echo "Error: NDK not available here."; \
+	  echo "  Host: make docker-build SRC=...  (uses ghostlock-build image)"; \
+	  echo "  Do not install a local NDK."; \
+	  exit 1; \
+	fi
+ifneq ($(SRC),)
 	@test -f "$(SRC_ABS)" || (echo "Error: source not found: $(SRC)"; exit 1)
-	@test -n "$(NDK)" || (echo "Error: NDK not found. Set NDK=/path/to/ndk"; exit 1)
-	@test -f "$(CC)" || (echo "Error: clang not found: $(CC)"; exit 1)
+	@test -n "$(CC)" && test -f "$(CC)" || (echo "Error: clang not found under $(TOOLCHAIN)"; exit 1)
+endif
 
-$(OUT): $(SRC_ABS)
+$(OUT): $(SRC_ABS) | check
 	@mkdir -p "$(OUT_DIR)"
 	$(CC) -static -O2 -Wall -pthread "$<" -o "$@"
 
-# Device path mirrors host out layout for clarity
 REMOTE_DIR = /data/local/tmp/stages/$(SRC_REL_DIR)$(ARCH_TAG)
 REMOTE_BIN = $(REMOTE_DIR)/$(BASENAME)
 
-deploy: $(OUT)
+# Host-side adb only (binary must already exist under out/)
+deploy:
+	@test -n "$(SRC)" || (echo "Usage: make deploy SRC=path/to/file.c [BITS=32|64]"; exit 1)
+	@test -f "$(OUT)" || (echo "Error: missing $(OUT) — run: make docker-build SRC=$(SRC) BITS=$(BITS)"; exit 1)
 	adb shell mkdir -p "$(REMOTE_DIR)"
 	adb push "$(OUT)" "$(REMOTE_BIN)"
 	adb shell chmod 755 "$(REMOTE_BIN)"
 	@echo "Deployed: $(REMOTE_BIN)"
 
-# Build every .c under NODE (relative to stages/)
-node-all:
+node-all: check
 	@test -n "$(NODE)" || (echo "Usage: make NODE=S02-kernelsnitch-leak [BITS=32|64]"; exit 1)
 	@test -d "$(STAGES_DIR)/$(NODE)" || (echo "Error: node not found: $(NODE)"; exit 1)
-	@set -e; \
-	count=0; \
-	while IFS= read -r f; do \
+	@count=0; \
+	for f in $$(find "$(STAGES_DIR)/$(NODE)" -name '*.c' -type f | sort); do \
 	  rel=$${f#$(STAGES_DIR)/}; \
 	  echo "==> $$rel"; \
-	  $(MAKE) -f "$(STAGES_DIR)/Makefile" SRC="$$rel" BITS=$(BITS) || exit 1; \
+	  $(MAKE) -f "$(STAGES_DIR)/Makefile" SRC="$$rel" BITS=$(BITS) \
+	    NDK="$(NDK)" NDK_HOST_TAG="$(NDK_HOST_TAG)" || exit 1; \
 	  count=$$((count+1)); \
-	done < <(find "$(STAGES_DIR)/$(NODE)" -name '*.c' -type f | sort); \
+	done; \
 	echo "Built $$count probe(s) under $(NODE) ($(ARCH_TAG)) → $(OUT_ROOT)/$(NODE)/"
 
 list-out:
@@ -129,3 +147,26 @@ list-out:
 clean:
 	rm -rf "$(OUT_ROOT)"
 	@echo "Removed $(OUT_ROOT)"
+
+# ── Docker (host default for NDK compiles) ────────────────────────
+ensure-image:
+	@if ! docker image inspect "$(IMAGE_NAME)" >/dev/null 2>&1; then \
+	  echo "==> Building Docker image $(IMAGE_NAME) (one-time)…"; \
+	  docker build --platform linux/amd64 -t "$(IMAGE_NAME)" -f "$(DOCKERFILE)" "$(REPO_ROOT)"; \
+	fi
+
+docker-build: ensure-image
+	@if [ -z "$(SRC)" ] && [ -z "$(NODE)" ]; then \
+	  echo "Usage: make docker-build SRC=path/to/file.c [BITS=32|64]"; \
+	  echo "   or: make docker-build NODE=S0x-name [BITS=32|64]"; \
+	  exit 1; \
+	fi
+	@echo "==> docker make -C leaf5/stages SRC='$(SRC)' NODE='$(NODE)' BITS=$(BITS)"
+	docker run --rm \
+	  --platform linux/amd64 \
+	  -v "$(REPO_ROOT):/src" \
+	  -u "$$(id -u):$$(id -g)" \
+	  -w /src/leaf5/stages \
+	  --entrypoint make \
+	  "$(IMAGE_NAME)" \
+	  SRC="$(SRC)" NODE="$(NODE)" BITS="$(BITS)" all

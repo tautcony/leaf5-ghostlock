@@ -2,6 +2,8 @@
 
 所有 Makefile / docker-build 产物统一写到这里，按 **项目 × 架构 × 流水线路径** 区分。
 
+**NDK 编译只走 Docker 镜像 `ghostlock-build`（`exploit/Dockerfile`），本机不要安装 Android NDK。**
+
 ```
 out/
 ├── exploit/
@@ -23,18 +25,21 @@ out/
 ## 示例
 
 ```bash
-# Exploit
-make -C exploit            # → out/exploit/aarch64/preload.so
-make -C exploit arm32-pie  # → out/exploit/armv7a/ghostlock32
+# Exploit（Docker）
+make exploit                   # 或: make -C exploit docker-build
+cd exploit && ./docker-build.sh arm32-pie
 
-# Stage probe（路径镜像 stages 树）
-make -C leaf5/stages \
+# Stage probe（Docker；路径镜像 stages 树）
+make -C leaf5/stages docker-build \
   SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c \
   BITS=64
-# → out/stages/S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/arm64/ghostlock64_opt
+# → out/stages/S05-.../probes/arm64/ghostlock64_opt
 
 # 整节点批量
-make -C leaf5/stages NODE=S02-kernelsnitch-leak BITS=32
+make -C leaf5/stages docker-build NODE=S02-kernelsnitch-leak BITS=32
+
+# 部署到设备（本机 adb；需先 docker-build）
+make -C leaf5/stages deploy SRC=... BITS=32
 ```
 
 设备上 deploy 路径与 host 对齐：

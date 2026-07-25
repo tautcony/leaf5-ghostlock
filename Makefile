@@ -4,6 +4,7 @@
 #   out/exploit/{aarch64,armv7a}/...
 #   out/stages/<stage-path>/{arm32,arm64}/...
 #
+# NDK: Docker only (ghostlock-build). Do not install host NDK.
 # Python (uv) lives at repo root:  uv sync  →  .venv/
 
 .PHONY: help venv exploit exploit-arm32 exploit-pie probes-help clean-out list-out
@@ -11,13 +12,13 @@
 help:
 	@echo "Targets:"
 	@echo "  make venv              uv sync → ./.venv"
-	@echo "  make exploit           64-bit preload → out/exploit/aarch64/"
-	@echo "  make exploit-arm32     32-bit preload → out/exploit/armv7a/"
-	@echo "  make exploit-pie       32-bit PIE     → out/exploit/armv7a/ghostlock32"
+	@echo "  make exploit           Docker → out/exploit/aarch64/preload.so"
+	@echo "  make exploit-arm32     Docker → out/exploit/armv7a/preload32.so"
+	@echo "  make exploit-pie       Docker → out/exploit/armv7a/ghostlock32"
 	@echo "  make probes-help       stage probe builder help"
 	@echo "  make list-out / clean-out"
 	@echo ""
-	@echo "Stage probe example:"
+	@echo "Stage probes (Docker NDK auto):"
 	@echo "  make -C leaf5/stages SRC=S02-kernelsnitch-leak/probes/test_ks_minimal.c"
 	@echo "  make -C leaf5/stages NODE=S02-kernelsnitch-leak BITS=32"
 
@@ -26,13 +27,13 @@ venv:
 	@echo "OK  .venv ready — run: source .venv/bin/activate  or  uv run leaf5-collect"
 
 exploit:
-	$(MAKE) -C exploit all
+	$(MAKE) -C exploit docker-build
 
 exploit-arm32:
-	$(MAKE) -C exploit arm32
+	cd exploit && ./docker-build.sh arm32
 
 exploit-pie:
-	$(MAKE) -C exploit arm32-pie
+	cd exploit && ./docker-build.sh arm32-pie
 
 probes-help:
 	$(MAKE) -C leaf5/stages help

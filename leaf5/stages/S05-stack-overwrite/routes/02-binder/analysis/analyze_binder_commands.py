@@ -27,7 +27,10 @@ from capstone import Cs, CS_ARCH_ARM64, CS_MODE_ARM
 from capstone.arm64 import ARM64_OP_MEM
 from elftools.elf.elffile import ELFFile
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = next(
+    p for p in Path(__file__).resolve().parents
+    if (p / "raw").is_dir() and (p / "stages").is_dir()
+)
 RAW = ROOT / "raw"
 VMLINUX_ELF = RAW / "vmlinux.elf"
 

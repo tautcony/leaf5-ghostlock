@@ -69,9 +69,11 @@ waiter->task @ KSP0 - 0x2B0
 
 ### 编译
 - Python：在**仓库根** `uv sync`（`pyproject.toml` → `./.venv`）；`uv run leaf5-collect` 等
-- 二进制**只**写入 `out/`（`make exploit` / `make -C leaf5/stages SRC=...`），见 `BUILD_OUTPUT.md`
-- NDK：**Docker 优先**（`exploit/docker-build.sh`）；探针：`leaf5/stages/Makefile`（`arm32`/`arm64` 子目录）
-- 32-bit：`armv7a-linux-androideabi*-clang`；64-bit：`aarch64-linux-android*-clang`
+- 二进制**只**写入 `out/`，见 `BUILD_OUTPUT.md`
+- **NDK：仅 Docker**（镜像 `ghostlock-build` / `exploit/Dockerfile`）。**禁止本机安装 Android NDK**。
+  - exploit：`make exploit` → `docker-build`；或 `exploit/docker-build.sh`
+  - stages：`make -C leaf5/stages docker-build SRC=...` / `NODE=...`
+- 32-bit：`armv7a-linux-androideabi*-clang`；64-bit：`aarch64-linux-android*-clang`（容器内）
 - 编辑器缺 `-DTARGET_CONFIG_H` 的诊断可忽略；以实编为准
 
 ### 提交
@@ -118,7 +120,6 @@ waiter->task @ KSP0 - 0x2B0
 | MCP | `leaf5-vmlinux` | symbol / disasm(fix bl·adrp) / frame / CFU / waiter 比 |
 
 配置：`.grok/config.toml`；实现：`tools/mcp/`；说明：`tools/mcp/README.md`。
-
 
 ### 32-bit 用户态
 - 内核地址用 **`uint64_t` / `ks_addr_t`**，禁止 `uintptr_t`/`size_t` 存内核指针。

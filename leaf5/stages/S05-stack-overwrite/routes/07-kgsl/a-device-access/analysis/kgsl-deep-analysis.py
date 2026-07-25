@@ -20,7 +20,10 @@ from capstone import Cs, CS_ARCH_ARM64, CS_MODE_ARM
 from elftools.elf.elffile import ELFFile
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = next(
+    p for p in Path(__file__).resolve().parents
+    if (p / "raw").is_dir() and (p / "stages").is_dir()
+)
 VMLINUX_ELF = ROOT / "raw" / "vmlinux.elf"
 WAITER_START = -0x380
 WAITER_END = -0x340

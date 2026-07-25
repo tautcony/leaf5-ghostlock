@@ -39,7 +39,10 @@ from elftools.elf.elffile import ELFFile
 
 # ── Constants ────────────────────────────────────────────────────────
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = next(
+    p for p in Path(__file__).resolve().parents
+    if (p / "raw").is_dir() and (p / "stages").is_dir()
+)
 RAW = ROOT / "raw"
 VMLINUX_ELF = RAW / "vmlinux.elf"
 ADDR_MASK = 0xFFFFFFFFFFFFFFFF

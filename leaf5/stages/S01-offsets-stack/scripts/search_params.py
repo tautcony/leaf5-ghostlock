@@ -14,7 +14,8 @@ import subprocess, sys, json, re, time, os
 from datetime import datetime
 from pathlib import Path
 
-REPO_ROOT   = Path(__file__).resolve().parent.parent.parent
+LEAF5_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "raw").is_dir() and (p / "stages").is_dir())
+REPO_ROOT   = LEAF5_ROOT.parent
 EXPLOIT_DIR = REPO_ROOT / "exploit"
 PRELOAD_SO  = EXPLOIT_DIR / "preload.so"
 DEVICE_PATH = "/data/local/tmp/preload.so"
