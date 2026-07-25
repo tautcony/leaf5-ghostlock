@@ -1,0 +1,14 @@
+# Project-scoped Grok config (Leaf5 GhostLock)
+# Skills: .grok/skills/* (auto-discovered)
+
+[mcp_servers.leaf5-adb]
+command = "/Users/tautcony/Documents/repos/leaf5-ghostlock/tools/mcp/run_adb.sh"
+enabled = true
+startup_timeout_sec = 45
+tool_timeout_sec = 180
+
+[mcp_servers.leaf5-vmlinux]
+command = "/Users/tautcony/Documents/repos/leaf5-ghostlock/tools/mcp/run_vmlinux.sh"
+enabled = true
+startup_timeout_sec = 60
+tool_timeout_sec = 120

@@ -107,6 +107,19 @@ waiter->task @ KSP0 - 0x2B0
 - capstone 5.x：ARM64 `bl` / `adrp` 的 `op.imm` **常错**；手写 imm 解码。`mov wN,#imm` 一般可用。
 - `MM_STRUCT_SZ`：从 `fork_init` → `kmem_cache_create_usercopy("mm_struct",…)` 跟寄存器，并用 `mm_alloc` 交叉验证。
 
+### Agent skills / MCP（本仓库）
+| 类型 | 名称 | 用途 |
+|------|------|------|
+| Skill | `leaf5-stages-workflow` | stages 纪律、探针落点、❌ 不重打 |
+| Skill | `arm64-kernel-re` | vmlinux 偏移/栈深/capstone 坑 |
+| Skill | `ndk-probe-loop` | 编译→push→errno 矩阵 |
+| Skill | `leaf5-check-work` | 改完自检（优先于通用 check-work） |
+| MCP | `leaf5-adb` | devices / uname 闸门 / push / run_probe / logcat |
+| MCP | `leaf5-vmlinux` | symbol / disasm(fix bl·adrp) / frame / CFU / waiter 比 |
+
+配置：`.grok/config.toml`；实现：`tools/mcp/`；说明：`tools/mcp/README.md`。
+
+
 ### 32-bit 用户态
 - 内核地址用 **`uint64_t` / `ks_addr_t`**，禁止 `uintptr_t`/`size_t` 存内核指针。
 - ARM32 上 `MAP_NORESERVE` 可能 EINVAL；映射尺寸勿过大。
