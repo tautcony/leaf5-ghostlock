@@ -51,7 +51,7 @@
 | 07 kgsl | [routes/07-kgsl](S05-stack-overwrite/routes/07-kgsl/) | ⚠️ | 见子节点；无 task 覆盖 |
 | 08 其它设备 | [routes/08-alt-devices](S05-stack-overwrite/routes/08-alt-devices/) | ⚠️ | binder 静态 HIT@−0x168 + EFAULT；GhostLock 后无 crash（见节点） |
 | 09 加深 syscall | [routes/09-alt-syscall-depth](S05-stack-overwrite/routes/09-alt-syscall-depth/) | ❌ | writev/sendmsg/splice 无自然覆盖 |
-| **10 真 UAF** | [routes/10-ghostlock-true-uaf](S05-stack-overwrite/routes/10-ghostlock-true-uaf/) | ⚠️ **4A panic** | EDEADLK errno=35；adjtimex reclaim+consumer → `kernel_panic`；pselect SHIFT **+15** CORRECTED |
+| **10 真 UAF** | [routes/10-ghostlock-true-uaf](S05-stack-overwrite/routes/10-ghostlock-true-uaf/) | ⛔ **终局 B** | EDEADLK✅；UAF panic✅；shaped 写矩阵全 ❌；shell 写链关闭 |
 
 ### KGSL 子节点（07）
 
@@ -123,4 +123,4 @@ KGSL list CFU（flags2@+0x18 bit2）可达但 ~stack_top-0x308，过深 ~0x1A0�
 ```
 
 *2026-07-25：旧「ret=1 requeue + shell CFU」栈覆盖模型关闭。*  
-*2026-07-26 CORRECTED：真链为 EDEADLK 悬空 `pi_blocked_on` + 返回后 reclaim；设备已打出 errno=35 与 reclaim+consumer **kernel_panic（4A）**；shaped write / root 未完成。pselect SHIFT=+15。*
+*2026-07-26：EDEADLK + UAF panic（4A）已证；**终局 B**：shaped pselect 写矩阵（SHIFT 13–17、LOCK_SHAPE 0–2）均无 fops 劫持；shell GhostLock→root 链关闭。*
