@@ -890,3 +890,20 @@ ghostlock_uaf_reclaim_consumer:
 - 「残差不 live / 栈覆盖链关闭」仅适用于 **未打 EDEADLK** 的旧模型。
 - **真 UAF 链：EDEADLK ✅，reclaim+consumer → kernel_panic ✅（4A 原语）**；root / shaped write 未完成。
 
+
+### 52. Shaped pselect reclaim integrated in exploit (2026-07-26)
+
+**代码**:
+- `main.c`: owner `LOCK_PI(f_pi_chain)`；CMP 记录 errno=35；WAIT 后 `do_pselect_fake_lock_route`
+- `fops.c`: 4.19 waiter words **0–7**；SHIFT=+15；默认 Nebula `lock=target-8`
+- `util.c`: write target = `data_addr(ASHMEM_MISC)+0x10`
+- `kaslr_base = KIMAGE_TEXT_BASE`（修 INIT_TASK）
+
+**设备**:
+```
+EDEADLK ✅ → pselect shaped ✅ → sched_setattr success=1 ✅
+cfi pwrite errno=22 ❌（fops 未劫持）→ root=0
+```
+
+**阻塞**: 4.19 上 constrained write 仍未命中。下一步：SHIFT 二分 / 写路径对照 / `PSELECT_LOCK_FAKE=1`。
+
