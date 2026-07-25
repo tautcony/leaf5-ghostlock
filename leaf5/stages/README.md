@@ -52,23 +52,35 @@
 
 ## 编译探针
 
-```bash
-cd leaf5/stages
-make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
-make SRC=.../probes/foo.c deploy
+产物写入仓库根 **`out/stages/`**，路径镜像本树 + 架构子目录（**不入库**）：
+
+```
+out/stages/<相对 stages 的源码目录>/{arm32|arm64}/<basename>
 ```
 
-产物在 `stages/build/`，**不入库**。
+```bash
+cd leaf5/stages
+make help
+make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
+# → ../../../out/stages/S05-.../probes/arm64/ghostlock64_opt
+
+make NODE=S02-kernelsnitch-leak BITS=32   # 批量
+make SRC=... deploy                       # adb → /data/local/tmp/stages/...
+make list-out
+```
+
+详见 [`../../../BUILD_OUTPUT.md`](../../../BUILD_OUTPUT.md)。
 
 ## 分析脚本
 
 ```bash
-cd leaf5 && uv sync
+# 仓库根（顶层 pyproject.toml / .venv）
+uv sync
 uv run leaf5-collect            # → S00
 uv run leaf5-extract-offsets    # → S01
 ```
 
-实现文件在各 `stages/S*/scripts/`；`leaf5/scripts/*.py` 为兼容 shim。
+实现文件在各 `stages/S*/scripts/`；`leaf5/scripts/*.py` 为包入口 shim。
 
 ## 与 exploit/ 对应
 

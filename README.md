@@ -21,16 +21,17 @@
 
 ```
 .
-├── README.md
-├── AGENTS.md
+├── README.md / AGENTS.md / Makefile / pyproject.toml
+├── .venv/                   # uv sync（gitignore）
+├── out/                     # 全部编译产物（gitignore，见 BUILD_OUTPUT.md）
+│   ├── exploit/{aarch64,armv7a}/
+│   └── stages/<stage-path>/{arm32,arm64}/
 ├── exploit/                 # Leaf5 exploit 源码（onyx-leaf5）
 └── leaf5/
     ├── stages/              # ★ 利用/分析流水线（文档 ↔ 代码）
-    │   ├── S00 … S07
-    │   └── S05-stack-overwrite/routes/   # 并列栈覆盖候选
-    ├── scripts/             # uv CLI shim
+    ├── scripts/             # uv 包 scripts.*（shim → stages）
     ├── raw/
-    └── *.md                 # 过程/历史文档
+    └── *.md
 ```
 
 ### 流水线一览
@@ -53,17 +54,21 @@
 ## 快速使用
 
 ```bash
-# 分析脚本
-cd leaf5 && uv sync
+# Python 工具（仓库顶层 uv / .venv）
+uv sync
 uv run leaf5-collect
 
-# 编译 exploit
-cd exploit && ./docker-build.sh
+# 编译 exploit → out/exploit/{aarch64,armv7a}/
+make exploit
+# 或: cd exploit && ./docker-build.sh
 
-# 编译流水线探针
-cd leaf5/stages
-make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
+# 编译流水线探针 → out/stages/<镜像路径>/{arm32,arm64}/
+make -C leaf5/stages \
+  SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c \
+  BITS=64
 ```
+
+构建产物布局见 [`BUILD_OUTPUT.md`](BUILD_OUTPUT.md)。
 
 ---
 

@@ -3,6 +3,8 @@
 *.bin
 leaf5/raw/
 leaf5/.venv/
+.venv/
+out/
 leaf5/probes/**/g32_*
 leaf5/probes/**/g64_*
 *.log
@@ -10,4 +12,3 @@ leaf5/probes/**/g64_*
 **/__pycache__
 *.pyc
 .DS_Store
-.venv/

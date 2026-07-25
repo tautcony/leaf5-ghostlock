@@ -10,7 +10,7 @@
 |--------|------|------|
 | 1 | **[`stages/README.md`](stages/README.md)** | **流水线主索引**：按利用顺序的代码 + 效果记录 |
 | 2 | [`PROCESS_LOG.md`](PROCESS_LOG.md) | 时间线与原始证据（步骤 40–45 终局） |
-| 3 | [`NEXT_STEPS.md`](NEXT_STEPS.md) | 历史路线与剩余可选方向 |
+| 3 | [`NEXT_STEPS.md`](docs/NEXT_STEPS.md) | 历史路线与剩余可选方向 |
 | 4 | 本文件 | 设备快照与仓库地图 |
 
 > 早期「qcedev 世界可写」「32-bit KGSL 完美重叠」等表述已废弃；以 **stages** 各节点 README 与 PROCESS_LOG 为准。
@@ -88,14 +88,18 @@ leaf5/
 ## 工具
 
 ```bash
-cd leaf5 && uv sync
+# 在仓库根（推荐）：顶层 .venv
+cd .. && uv sync
 uv run leaf5-collect
 uv run leaf5-extract-offsets
 
-# 编译某探针
+# 编译某探针 → ../../out/stages/.../arm64/<name>
 cd stages
 make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock64_opt.c BITS=64
+make list-out
 ```
+
+产物布局：[`../BUILD_OUTPUT.md`](../BUILD_OUTPUT.md)。
 
 ---
 
@@ -105,14 +109,14 @@ make SRC=S05-stack-overwrite/routes/07-kgsl/e-rb-issueibcmds-64/probes/ghostlock
 
 | 文档 | 说明 |
 |------|------|
-| [ANALYSIS.md](ANALYSIS.md) | 早期设备分析（部分路由结论已过时） |
-| [GHOSTLOCK_EXPLOIT_PLAN.md](GHOSTLOCK_EXPLOIT_PLAN.md) | 早期计划 |
-| [VERIFICATION_REPORT.md](VERIFICATION_REPORT.md) | 偏移验证报告 |
-| [STACK_LAYOUT.md](STACK_LAYOUT.md) | 栈布局笔记 |
-| [COMPARE_OPPO_FIND_N2.md](COMPARE_OPPO_FIND_N2.md) | 与 Find N2 对比 |
-| [PSELECT_STACK_ANALYSIS_PLAN.md](PSELECT_STACK_ANALYSIS_PLAN.md) | pselect 计划 |
+| [ANALYSIS.md](docs/ANALYSIS.md) | 早期设备分析（部分路由结论已过时） |
+| [GHOSTLOCK_EXPLOIT_PLAN.md](docs/archive/GHOSTLOCK_EXPLOIT_PLAN.md) | 早期计划 |
+| [VERIFICATION_REPORT.md](docs/VERIFICATION_REPORT.md) | 偏移验证报告 |
+| [STACK_LAYOUT.md](docs/STACK_LAYOUT.md) | 栈布局笔记 |
+| [COMPARE_OPPO_FIND_N2.md](docs/COMPARE_OPPO_FIND_N2.md) | 与 Find N2 对比 |
+| [PSELECT_STACK_ANALYSIS_PLAN.md](docs/archive/PSELECT_STACK_ANALYSIS_PLAN.md) | pselect 计划 |
 | [docs/KGSL_STACK_OVERWRITE.md](docs/KGSL_STACK_OVERWRITE.md) | KGSL 技术笔记 + 终局勘误 |
-| [edl-backup.md](edl-backup.md) / [edl-printgpt.md](edl-printgpt.md) | EDL 相关 |
+| [edl-backup.md](edl/) / [edl-printgpt.md](edl/printgpt-p6pro.md) | EDL 相关 |
 
 ---
 

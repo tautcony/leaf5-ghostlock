@@ -5,7 +5,11 @@
 *.pyc
 __pycache__/
 
-# Exploit build outputs (regenerate with make / docker-build)
+# Unified binary output tree (make / docker-build)
+# Layout documentation: BUILD_OUTPUT.md (tracked)
+/out/
+
+# Legacy exploit-local paths (no longer written; keep ignored if present)
 exploit/build/
 exploit/assets/
 exploit/preload.so
@@ -14,20 +18,24 @@ exploit/ghostlock32
 exploit/test-programs/test_*
 !exploit/test-programs/*.c
 
-# Probe / test ELF binaries (sources only in git)
+# Legacy probe paths
 leaf5/probes/**/g32_*
 leaf5/probes/**/g64_*
-leaf5/probes/**/kgsl_probe
-leaf5/probes/**/kgsl_ghostlock_poc
 leaf5/probes/**/test_*
 !leaf5/probes/**/*.c
 !leaf5/probes/**/*.h
-!leaf5/probes/**/Makefile
+leaf5/stages/build/
+leaf5/stages/**/build/
 
-# Python envs
+# Python: venv at repo root (uv sync)
 .venv/
 leaf5/.venv/
-leaf5/uv.lock
+*.egg-info/
+dist/
+build/
+
+# Lockfile may be committed; keep optional ignore off for uv.lock at root
+# (uv.lock is tracked when present)
 
 # NDK
 /tmp/ndk_extract/
@@ -42,7 +50,7 @@ leaf5/uv.lock
 .DS_Store
 Thumbs.db
 
-# Kernel images and extracted binaries (keep local only)
+# Kernel images and extracted binaries (local only)
 vmlinux*
 boot*.img
 *.bin
@@ -50,11 +58,3 @@ leaf5/raw/kheaders/
 leaf5/raw/kheaders.tar.xz
 leaf5/raw/kernel_payload.bin
 leaf5/raw/vmlinux*
-
-# Stage builds
-leaf5/stages/build/
-leaf5/stages/**/build/
-
-# Stage probe ELF outputs (any name without extension under build/)
-leaf5/stages/**/g32_*
-leaf5/stages/**/g64_*

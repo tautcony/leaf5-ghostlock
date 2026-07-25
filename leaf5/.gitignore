@@ -13,18 +13,8 @@ __pycache__/
 .venv/
 *.pyc
 .DS_Store
-uv.lock
 
-# Probe build products
-probes/**/g32_*
-probes/**/g64_*
-probes/**/kgsl_probe
-probes/**/kgsl_ghostlock_poc
-probes/**/test_*
-!probes/**/*.c
-!probes/**/*.h
-!probes/**/Makefile
-
-# Stage probe build products
+# Build products live in repo-root out/ (see ../../out/)
 stages/build/
 stages/**/build/
+uv.lock

@@ -1,0 +1,30 @@
+[project]
+name = "leaf5-analysis"
+version = "0.1.0"
+description = "Leaf5 (Onyx) GhostLock adaptation analysis tooling"
+requires-python = ">=3.11"
+dependencies = [
+    "capstone>=5.0.9",
+    "pyelftools>=0.33",
+]
+
+[project.scripts]
+leaf5-collect = "scripts.collect_device:main"
+leaf5-summarize = "scripts.summarize_config:main"
+leaf5-extract-offsets = "scripts.extract_offsets:main"
+leaf5-mm-params = "scripts.extract_mm_struct_params:main"
+leaf5-search-params = "scripts.search_params:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Package lives at leaf5/scripts but imports as `scripts.*`
+[tool.hatch.build.targets.wheel]
+packages = ["leaf5/scripts"]
+
+[tool.hatch.build.targets.wheel.sources]
+"leaf5/scripts" = "scripts"
+
+[tool.uv]
+package = true
