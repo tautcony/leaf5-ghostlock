@@ -849,3 +849,44 @@ Device log (abbrev):
 3. abort 后宽窗 0x41 CFU + PI unlock 仍无 OOPS → 与 §49 一致，残差不 live。
 4. shell CFU 栈覆盖链（live 与 post-return）均 **关闭**；root 未达成。
 
+
+### 51. CORRECTED — 真·GhostLock UAF（pi_blocked_on）+ EDEADLK + reclaim panic (2026-07-26)
+
+**CVE 机制重述**（Nebula IonStack / AlmaLinux；Leaf5 反汇编一致）:
+- 漏洞不在「阻塞时跨线程写栈」，而在 `remove_waiter()` 清 **`current->pi_blocked_on`**（应清 `waiter->task`）。
+- 三 futex 死锁 → `CMP_REQUEUE_PI` 内部 **EDEADLK 回滚** → victim 的 `pi_blocked_on` 悬空指向 **已返回后释放的内核栈 waiter**。
+- T3：同线程 CFU 回收该栈深度写 fake waiter；T4：`sched_setattr` PI walk。
+
+**Leaf5 [BIN]**:
+- `remove_waiter @ 0xffffff800814af10`: `mrs sp_el0` / `str xzr,[x20,#0x8d0]` → 仍 bug。
+- 旧探针 `CMP ret=1` + W 仍 `S` = **成功 requeue**，**不是** GhostLock；且多条探针 **缺 owner `LOCK_PI(f_pi_chain)`** 环边。
+
+**设备（#245 match）**:
+```
+ghostlock_edeadlk_detect:
+  CMP_REQUEUE_PI ret=-1 errno=35 (EDEADLK)   ← 真触发
+  WAIT ret=-1 errno=110 (ETIMEDOUT)            ← 4.19 失败路径不立即 wake
+  KERNEL SURVIVED
+
+ghostlock_edeadlk_adjtimex_only (无 consumer):
+  EDEADLK + adjtimex 0x41 → SURVIVED
+
+ghostlock_uaf_reclaim_consumer:
+  CMP errno=35 → WAIT ETIMEDOUT → adjtimex EPERM(CFU) → 设备掉线
+  bootreason: kernel_panic,null                ← 4A：UAF 内容可控后 PI walk 致 panic
+```
+
+**pselect 几何 CORRECTED**:
+- 旧 `SHIFT=-46`（futex_wait 深度）作废。
+- `waiter_base @ -0x198` vs `fdset @ -0x210` → **`PSELECT_WAITER_WORD_SHIFT = +15`**，8/8 字段可达（NFDS=640）。
+- `target.h` 已更新。
+
+**popsicle 对照**: 同 T1–T4；T3 用 pselect；T5 direct `init_cred`/SELinux。Leaf5 T5 仍待 shaped fake（非 0x41）。
+
+**节点**: `stages/S05-.../10-ghostlock-true-uaf/`  
+**日志**: implementer `C_reclaim_consumer/probe_*.log`，`B_pselect_shift/run.log`，`A_edeadlk/`。
+
+**终局修正**:
+- 「残差不 live / 栈覆盖链关闭」仅适用于 **未打 EDEADLK** 的旧模型。
+- **真 UAF 链：EDEADLK ✅，reclaim+consumer → kernel_panic ✅（4A 原语）**；root / shaped write 未完成。
+

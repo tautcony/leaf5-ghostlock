@@ -34,7 +34,7 @@
 | S02 | [kernelsnitch-leak](S02-kernelsnitch-leak/) | ✅ | mm_struct 泄漏 |
 | S03 | [heap-spray](S03-heap-spray/) | ✅ | sk_buff reclaim |
 | S04 | [ghostlock-trigger](S04-ghostlock-trigger/) | ✅ | FUTEX_CMP_REQUEUE_PI 产生 stale waiter |
-| S05 | [stack-overwrite](S05-stack-overwrite/) | ❌ | **可到达 CFU 均未覆盖 task**；waiter 位 CORRECTED 见下 |
+| S05 | [stack-overwrite](S05-stack-overwrite/) | ⚠️ | 旧「成功 requeue+CFU」模型关闭；**真 UAF（EDEADLK+reclaim）OPEN** 见 10 |
 | S06 | [e2e-chain](S06-e2e-chain/) | ⚠️ | 集成链到 CFU 触发；无 fops 覆盖 |
 | S07 | [post-cfu](S07-post-cfu/) | ⛔ | 依赖 S05 成功，未打通 |
 
@@ -51,6 +51,7 @@
 | 07 kgsl | [routes/07-kgsl](S05-stack-overwrite/routes/07-kgsl/) | ⚠️ | 见子节点；无 task 覆盖 |
 | 08 其它设备 | [routes/08-alt-devices](S05-stack-overwrite/routes/08-alt-devices/) | ⚠️ | binder 静态 HIT@−0x168 + EFAULT；GhostLock 后无 crash（见节点） |
 | 09 加深 syscall | [routes/09-alt-syscall-depth](S05-stack-overwrite/routes/09-alt-syscall-depth/) | ❌ | writev/sendmsg/splice 无自然覆盖 |
+| **10 真 UAF** | [routes/10-ghostlock-true-uaf](S05-stack-overwrite/routes/10-ghostlock-true-uaf/) | ⚠️ **4A panic** | EDEADLK errno=35；adjtimex reclaim+consumer → `kernel_panic`；pselect SHIFT **+15** CORRECTED |
 
 ### KGSL 子节点（07）
 
@@ -121,4 +122,5 @@ KGSL list CFU（flags2@+0x18 bit2）可达但 ~stack_top-0x308，过深 ~0x1A0�
 旧 flags=0 探针从未 list-CFU 拷贝 ibdesc。
 ```
 
-*2026-07-25 终局：post-return 与 live blocking-window（信号 abort WAIT 后再 CFU）均无法 cover waiter->task；shell GhostLock 栈覆盖链关闭；root 未达成。*
+*2026-07-25：旧「ret=1 requeue + shell CFU」栈覆盖模型关闭。*  
+*2026-07-26 CORRECTED：真链为 EDEADLK 悬空 `pi_blocked_on` + 返回后 reclaim；设备已打出 errno=35 与 reclaim+consumer **kernel_panic（4A）**；shaped write / root 未完成。pselect SHIFT=+15。*
