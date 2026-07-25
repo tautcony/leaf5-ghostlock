@@ -1,5 +1,7 @@
 > **文档类型**: 技术文档 | **状态**: ⚠️ 历史分析 + 终局勘误 | **最后更新**: 2026-07-25
 
+> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果见 [`../stages/README.md`](../stages/README.md)。本文为参考/历史；终局以 stages 与 [`../PROCESS_LOG.md`](../PROCESS_LOG.md) 为准。文档索引：[`README.md`](README.md)。
+
 # KGSL Compat IOCTL 栈覆盖 — 技术文档
 
 **漏洞**: CVE-2026-43499 (GhostLock)  

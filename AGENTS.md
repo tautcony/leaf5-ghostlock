@@ -28,7 +28,9 @@
 |------|------|
 | `leaf5/stages/` | **主索引**：按阶段代码与节点成败 |
 | `leaf5/PROCESS_LOG.md` | 时间线证据 |
-| `leaf5/raw/` | config.gz、kheaders、vmlinux*、boot_a.bin（runtime 真源） |
+| `leaf5/docs/` | 画像 / 偏移 / 路线矩阵 / 归档计划（参考；冲突以 stages + PROCESS_LOG 为准） |
+| `leaf5/edl/` | EDL **只读**提取 boot/分区（无改镜像 / Magisk） |
+| `leaf5/raw/` | config.gz、kheaders、vmlinux*（runtime 真源）；`boot_a.bin` 在 `leaf5/` |
 | `exploit/targets/onyx-leaf5/target.h` | 偏移与宏的代码侧真源 |
 | `leaf5/scripts/` | uv 包 `scripts.*`（shim → stages） |
 | `exploit/` | 集成 exploit；**新探针优先放 stages** |

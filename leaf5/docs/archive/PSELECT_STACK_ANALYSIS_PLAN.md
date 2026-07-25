@@ -1,9 +1,5 @@
-> **归档** | 计划已执行；pselect 路由关闭。结论见 stages `01-pselect` 与 PROCESS_LOG。
+> **归档** | pselect 适配计划已执行；路由关闭。结论见 [`../../stages/S05-stack-overwrite/routes/01-pselect/`](../../stages/S05-stack-overwrite/routes/01-pselect/) 与 [`../../PROCESS_LOG.md`](../../PROCESS_LOG.md)。栈布局参考 [`../STACK_LAYOUT.md`](../STACK_LAYOUT.md)。
 
-> **文档类型**: 过程文档（分析计划） | **状态**: ❌ 已过时 — 计划已执行完毕，精确结论见 [STACK_LAYOUT.md](../STACK_LAYOUT.md) 和 [VERIFICATION_REPORT.md](../VERIFICATION_REPORT.md)，新栈覆盖路由见 [global-cfu-scan](../../stages/S05-stack-overwrite/routes/05-global-cfu-scan/) | **最后更新**: 2026-07-24
-
-
-> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。
 # PSELECT_WAITER_WORD_SHIFT 适配计划 — Leaf5 4.19 内核
 
 **日期**: 2026-07-24  
@@ -473,7 +469,7 @@ core_sys_select 帧 = 0x1c0 (448B)，减去保存寄存器区域 (12 × 8 = 96B)
 1. **`leaf5/scripts/compute_pselect_shift.py`** — 自动从 vmlinux.elf 计算 SHIFT 值的 Python 脚本
 2. **`exploit/targets/onyx-leaf5/target.h`** — 更新后的 PSELECT_WAITER_WORD_SHIFT 值
 3. **`exploit/src/fops.c`** — 适配 4.19 waiter 大小的 fd_set 布局
-4. **`leaf5/VERIFICATION_REPORT.md`** — 更新验证状态
+4. **`docs/VERIFICATION_REPORT.md`** — 更新验证状态
 
 ---
 

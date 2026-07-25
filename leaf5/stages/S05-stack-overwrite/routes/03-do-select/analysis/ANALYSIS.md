@@ -103,5 +103,5 @@ waiter 在 SP+0x250, poll_wqueues 数据最远到 SP+0x100。**即使用满 inli
 
 运行:
 ```bash
-uv run python ghostlock-analysis/do-select-buffers/analyze_do_select.py -v
+uv run python stages/S05-stack-overwrite/routes/03-do-select/analysis/analyze_do_select.py -v  # path may vary; see routes/03-do-select/
 ```

@@ -7,6 +7,8 @@
 
 权威时间线证据仍见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md)。
 
+参考文档与归档：[`../docs/README.md`](../docs/README.md)。EDL 镜像提取：[`../edl/README.md`](../edl/README.md)。
+
 ---
 
 ## 总览矩阵

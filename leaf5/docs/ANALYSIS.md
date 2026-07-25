@@ -1,7 +1,8 @@
 > **文档类型**: 结论文档 | **状态**: ✅ 有效 | **最后更新**: 2026-07-24
 
 
-> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果已按利用顺序归档至 [`stages/README.md`](stages/README.md)。本文保留历史分析细节；可行性终局以 stages 各节点 README 与 [`PROCESS_LOG.md`](PROCESS_LOG.md) 为准。
+> ⚠️ **文档导航更新 (2026-07-25)**：代码与节点效果见 [`../stages/README.md`](../stages/README.md)。本文为参考/历史；终局以 stages 与 [`../PROCESS_LOG.md`](../PROCESS_LOG.md) 为准。文档索引：[`README.md`](README.md)。
+
 # Leaf5 GhostLock 设备分析报告
 
 | 字段 | 值 |
@@ -341,6 +342,8 @@ Onyx Leaf5
 ---
 
 ## 7. 下一步（按优先级）
+
+> **已过时段落**：下列清单在 2026-07-24 撰写；boot 提取、偏移、探针与利用链验证已在后续步骤完成。终局见 [`../stages/README.md`](../stages/README.md)。保留原文作审计。
 
 1. **导出与 runtime 一致的 boot/kernel**  
    - 解锁已满足；可用 `fastboot boot`/`fastboot fetch`（若支持）或 EDL/厂商工具从 `boot_a` 拉取。  
