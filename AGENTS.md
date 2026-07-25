@@ -112,14 +112,16 @@ waiter->task @ KSP0 - 0x2B0
 ### Agent skills / MCP（本仓库）
 | 类型 | 名称 | 用途 |
 |------|------|------|
+| Skill | `leaf5-image-elf` | boot/EDL 提取 → Image → vmlinux-to-elf → 批量偏移（数据源闸门） |
 | Skill | `leaf5-stages-workflow` | stages 纪律、探针落点、❌ 不重打 |
-| Skill | `arm64-kernel-re` | vmlinux 偏移/栈深/capstone 坑 |
+| Skill | `arm64-kernel-re` | vmlinux 偏移/栈深/capstone 坑（ELF 就绪后） |
 | Skill | `ndk-probe-loop` | 编译→push→errno 矩阵 |
 | Skill | `leaf5-check-work` | 改完自检（优先于通用 check-work） |
 | MCP | `leaf5-adb` | devices / uname 闸门 / push / run_probe / logcat |
 | MCP | `leaf5-vmlinux` | symbol / disasm(fix bl·adrp) / frame / CFU / waiter 比 |
 
-配置：`.grok/config.toml`；实现：`tools/mcp/`；说明：`tools/mcp/README.md`。
+配置：`.grok/config.toml`；实现：`tools/mcp/`；说明：`tools/mcp/README.md`。  
+镜像/ELF 流程细节：`.grok/skills/leaf5-image-elf/`（含 `references/`）。
 
 ### 32-bit 用户态
 - 内核地址用 **`uint64_t` / `ks_addr_t`**，禁止 `uintptr_t`/`size_t` 存内核指针。

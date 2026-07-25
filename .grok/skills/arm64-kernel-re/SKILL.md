@@ -20,6 +20,8 @@ description: >
 
 Before extracting: confirm build **#245** / `g3d47a6619220`. Mismatch → stop.
 
+If boot/Image/ELF is missing, mismatched, or not yet rebuilt, use skill **`leaf5-image-elf`** first (EDL → banner gate → vmlinux-to-elf), then return here.
+
 ## Tooling in this repo
 
 ```bash
