@@ -726,3 +726,59 @@ waiter task: KSP0-0x2B0  (目标)
 - 设备 #245：`test_mm_leak` FOUND mm；GhostLock requeue ret=1；64-bit CFU ret=0 内核存活；32-bit RB_ISSUEIBCMDS 全 EINVAL；qce/DRM 权限失败；ctx 0x12=OK
 - 文档 CORRECTED：S02 stages 探针≠真泄漏；S03 无 stage sk_buff 探针；S04 无独立二进制（见 e2e）
 - 报告：`docs/REVERIFY_2026-07-25.md`
+
+### 47. CORRECTED — list CFU 路径 + WAIT_REQUEUE_PI waiter 位置 (2026-07-25)
+
+**设备**: #245 g3d47a6619220 匹配。
+
+#### A. ISSUEIBCMDS 是否真的 CFU 拷贝 ibdesc
+
+反汇编 `kgsl_ioctl_rb_issueibcmds`:
+- `ldrb w8,[cmd+0x18]; tbnz #2` → list 路径 `kgsl_drawobj_cmd_add_ibdesc_list`（CFU 0x20 @ SP+8）
+- bit2=0 → `kgsl_drawobj_cmd_add_ibdesc`，**无** ibdesc CFU
+
+探针 `test_list_cfu_path`（arm64）:
+- native size≥0x1c 且 flags2@+0x18=0x4 + bad ptr → **EFAULT**
+- flags=0 + bad ptr → EINVAL
+- 旧 compat `0xc0140910` flags=0 good → ret=0（**无 list CFU**）
+
+→ 既有 ghostlock64_opt / test_cfu_trigger 的「CFU 触发」**不**等于用户 ibdesc 写入内核栈。
+
+#### B. WAIT_REQUEUE_PI waiter 不在 futex_wait
+
+- 符号表无 `futex_wait_requeue_pi`
+- do_futex 跳表 cmd=11 → 内联路径
+- `rt_mutex_init_waiter(x29 - 0xc8)` @ do_futex+0x1120
+
+```
+waiter @ do_futex x29-0xc8
+task  @ waiter+0x30 = do_futex_entry - 0xF8
+      = stack_top - 0x70 - 0xF8 = stack_top - 0x168
+```
+
+旧 **KSP0−0x2B0（futex_wait 模型）对 WAIT_REQUEUE_PI 作废**。
+
+#### C. 真 list CFU 与正确 waiter 比较
+
+```
+list CFU: [stack_top-0x308, stack_top-0x328)   // 过深 ~0x1A0
+task:     stack_top-0x168
+```
+
+`ghostlock64_list_cfu`: GhostLock ret=1，list CFU errno=22，pattern@+0x18，内核存活。
+
+#### D. 近邻候选（相对新目标 −0x168）
+
+| 路径 | CFU 约 | vs −0x168 | shell |
+|------|--------|-----------|-------|
+| kgsl list | −0x308 | 过深 0x1A0 | ✅ |
+| kgsl single (无 CFU) | — | — | ✅ |
+| uinput UI_SET / setup | −0x190 | 过深 ~0x28 | ✅ open |
+| qcedev 328B | −0x3B0 起 | 过深且权限 | ❌ drmrpc |
+
+#### E. 前进方向
+
+1. 以 **−0x168** 重扫 shell 可达 CFU（优先缩小 uinput 0x28 缝）
+2. drmrpc 进程注入打开 `/dev/qce` 仅当深度也对齐新 waiter 后再投
+3. 禁止用 flags=0 ghostlock64 当栈覆盖证据
+

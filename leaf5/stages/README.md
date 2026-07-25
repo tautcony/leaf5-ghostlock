@@ -34,7 +34,7 @@
 | S02 | [kernelsnitch-leak](S02-kernelsnitch-leak/) | ✅ | mm_struct 泄漏 |
 | S03 | [heap-spray](S03-heap-spray/) | ✅ | sk_buff reclaim |
 | S04 | [ghostlock-trigger](S04-ghostlock-trigger/) | ✅ | FUTEX_CMP_REQUEUE_PI 产生 stale waiter |
-| S05 | [stack-overwrite](S05-stack-overwrite/) | ❌ | **全部可到达 CFU 均未覆盖 task**（见路由矩阵） |
+| S05 | [stack-overwrite](S05-stack-overwrite/) | ❌ | **可到达 CFU 均未覆盖 task**；waiter 位 CORRECTED 见下 |
 | S06 | [e2e-chain](S06-e2e-chain/) | ⚠️ | 集成链到 CFU 触发；无 fops 覆盖 |
 | S07 | [post-cfu](S07-post-cfu/) | ⛔ | 依赖 S05 成功，未打通 |
 
@@ -60,7 +60,7 @@
 | b-context-create | ✅ flags=0x12 |
 | c-mem-alloc | ❌ EOPNOTSUPP / 非必需 |
 | d-rb-issueibcmds-32 | ❌ compat dispatch 拒绝 |
-| e-rb-issueibcmds-64 | ⚠️ CFU 触发，位差 ~88B |
+| e-rb-issueibcmds-64 | ❌ list CFU 过深（旧 flags=0 证据作废；见节点 CORRECTED） |
 | f-submit-bypass | ⚠️ 可达，CFU 更浅 |
 | g-personality | ❌ 不设 TIF_32BIT |
 
@@ -110,4 +110,15 @@ uv run leaf5-extract-offsets    # → S01
 
 ---
 
-*流水线终局：标准 GhostLock CFU 覆盖链在 Leaf5 4.19.157 #245 上因栈布局不可行。*
+### CORRECTED 终局要点（2026-07-25 晚）
+
+```
+WAIT_REQUEUE_PI waiter 在 do_futex（非 futex_wait）:
+  rt_mutex_init_waiter(x29 - 0xc8) → task @ stack_top - 0x168
+旧「task @ KSP0-0x2B0」仅适用于 futex_wait 模型，对 GhostLock 路径作废。
+
+KGSL list CFU（flags2@+0x18 bit2）可达但 ~stack_top-0x308，过深 ~0x1A0。
+旧 flags=0 探针从未 list-CFU 拷贝 ibdesc。
+```
+
+*流水线终局：标准 GhostLock + KGSL list CFU 在 Leaf5 4.19.157 #245 上因栈深度不匹配仍不可行；下一步以 −0x168 重扫更浅 shell 可达 CFU（uinput 近失配 ~0x28）。*
