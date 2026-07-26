@@ -86,6 +86,7 @@ root        ❌ 无 uid=0 证据
 | `analysis/pselect_shift_corrected.md` | SHIFT=+15 |
 | `analysis/POST_B_ALTERNATIVES.md` | 终局 B 后可选方向（研究） |
 | `analysis/SECOND_BUG_AND_CVE_CANDIDATES.md` | 多洞联用清单 + 独立 CVE 闸门 |
+| `analysis/VERIFY_2026-07-26_second_bug.md` | S1/Binder/KGSL 第一轮验证 |
 | `analysis/PI_STORE_CONSUMERS.md` | PI store / consumer / UTS oracle 静态 |
 | `analysis/CHAIN_MATRIX.md` | popsicle vs Leaf5 对照 |
 | `probes/ghostlock_edeadlk_*.c` | EDEADLK / panic 对照 |

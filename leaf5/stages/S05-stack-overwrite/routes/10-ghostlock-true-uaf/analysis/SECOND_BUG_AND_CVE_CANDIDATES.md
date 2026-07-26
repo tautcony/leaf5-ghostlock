@@ -488,8 +488,25 @@ GhostLock 只当 leak（S02）
 
 ---
 
-## 7. 修订记录
+## 7. 验证状态（滚动）
+
+权威实测见 [`VERIFY_2026-07-26_second_bug.md`](VERIFY_2026-07-26_second_bug.md)。
+
+| ID | 本轮结论 | 日期 |
+|----|----------|------|
+| S1 触达 | kgsl/uhid/uinput/binder 等 shell R/W OK；qce/diag/dri 拒；ashmem 以 C open 为准 | 2026-07-26 |
+| S1 写目标 | ashmem 终局 B 仍关；优先 kgsl 对象 / S2 堆槽，勿盲扫 BSS | 2026-07-26 |
+| Q1 CVE-2024-23380 VBO | **无 VBO 符号** → 该编号不适用；改 sparse/gpuobj 面 | 2026-07-26 |
+| Q1 KGSL 触达 | `/dev/kgsl-3d0` shell R+W ✅ | 2026-07-26 |
+| Q5 CVE-2024-46740 | surface+触达；**未证明已修** → 待最小触发 | 2026-07-26 |
+| Q5 CVE-2023-20938 | buffer_release 在；校验合入未证 | 2026-07-26 |
+| U1 perfservice | `service list` 可见 | 2026-07-26 |
+
+---
+
+## 8. 修订记录
 
 | 日期 | 变更 |
 |------|------|
 | 2026-07-26 | 初版：联用清单（思路）+ 独立 CVE 闸门表 + P0–P3 工作包 |
+| 2026-07-26 | 链入 VERIFY：S1/Binder/KGSL 第一轮静态+触达 |
