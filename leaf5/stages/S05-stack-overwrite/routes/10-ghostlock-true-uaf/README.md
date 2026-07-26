@@ -73,6 +73,8 @@ root        ❌ 无 uid=0 证据
 - **本链（ashmem fops 写矩阵）无** 开放实验；勿重打 SHIFT/shape 同行。
 - **其它提权方向**（换写 gadget/consumer、oracle、BPF、授权刷写等）：见  
   [`analysis/POST_B_ALTERNATIVES.md`](analysis/POST_B_ALTERNATIVES.md)。  
+- **第二条件联用 + 独立 LPE CVE 清单**（每项思路与静态闸门）：见  
+  [`analysis/SECOND_BUG_AND_CVE_CANDIDATES.md`](analysis/SECOND_BUG_AND_CVE_CANDIDATES.md)。  
   仅当出现 **新 [BIN] 理论** 时再开探针节点。
 - 确定性 root：用户授权的 Magisk/刷写/EDL 写。
 
@@ -83,7 +85,12 @@ root        ❌ 无 uid=0 证据
 | `analysis/edeadlk_path.md` | EDEADLK 静态 |
 | `analysis/pselect_shift_corrected.md` | SHIFT=+15 |
 | `analysis/POST_B_ALTERNATIVES.md` | 终局 B 后可选方向（研究） |
+| `analysis/SECOND_BUG_AND_CVE_CANDIDATES.md` | 多洞联用清单 + 独立 CVE 闸门 |
+| `analysis/PI_STORE_CONSUMERS.md` | PI store / consumer / UTS oracle 静态 |
 | `analysis/CHAIN_MATRIX.md` | popsicle vs Leaf5 对照 |
 | `probes/ghostlock_edeadlk_*.c` | EDEADLK / panic 对照 |
-| `exploit/src/{main,fops,util}.c` | 集成 EDEADLK+pselect+prio |
-| `exploit/targets/onyx-leaf5/target.h` | waiter 0x50、SHIFT=15、fops+0x10 |
+| `probes/ghostlock_uts_oracle.c` | 非 CFI uname oracle + 多 consumer |
+| `probes/bpf_perf_reach.c` | BPF/perf shell 可达性 |
+| `analysis/RESULTS_2026-07-26_oracle_bpf.md` | 设备实测：BPF❌ perf✅；UTS 无 store；zero-lock consumer panic |
+| `exploit/src/{main,fops,util}.c` | `WRITE_ORACLE` / `PI_CONSUMER` |
+| `exploit/targets/onyx-leaf5/target.h` | waiter 0x50、SHIFT=15、UTS_NAME_SYSNAME_OFF |

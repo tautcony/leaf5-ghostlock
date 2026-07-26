@@ -167,25 +167,15 @@ vmlinux 存在：
 
 ### F — BPF / perf（独立面，与 GhostLock 并行）
 
-设备画像：
+**设备实测 2026-07-26**（`probes/bpf_perf_reach.c`，见 `RESULTS_2026-07-26_oracle_bpf.md`）：
 
-| 项 | 值 | 含义 |
-|----|-----|------|
-| `unprivileged_bpf_disabled` | **0** | 内核未全局关非特权 BPF |
-| `CONFIG_BPF_SYSCALL` | y | 有 syscall |
-| `CONFIG_USER_NS` | **n** | 无 userns 辅助逃逸 |
-| `perf_event_paranoid` | **-1** | 异常宽松 |
-| SELinux | Enforcing | **很可能** 拒 shell 的 `bpf`/`perf_event_open` |
+| 调用 | 结果 |
+|------|------|
+| `bpf(PROG_LOAD/MAP_CREATE)` | ❌ errno=**13** — shell 面关闭 |
+| `perf_event_open` SW/HW | ✅ fd 成功 |
 
-**最小探针（stages 新节点，勿塞进路由 10 写矩阵）**：
-
-```text
-bpf(BPF_PROG_LOAD, ...)  → errno?
-perf_event_open(...)     → errno?
-```
-
-- 若 SELinux/EINVAL 直接杀 → 记 ❌，不深挖。  
-- 若意外可达 → 另开 S0x 做 BPF 利用研究（与 GhostLock 脱钩，工作量大）。
+- **BPF LPE 线对 shell 不做**（无新 SELinux 上下文前）。  
+- **perf 可达**可作侧信道/采样增强；独立研究，勿与 fops 写矩阵混跑。
 
 ---
 
@@ -256,3 +246,6 @@ perf_event_open(...)     → errno?
 - **并行低成本**：BPF/perf 可达性探针；结果多半被 SELinux 否决。  
 - **确定性 root**：仅 **用户授权** 的镜像/Magisk 路径。  
 - **其它 CVE/驱动**：开放但等于新项目，不能算作「GhostLock 链还差一步」。
+
+**展开清单**（每项思路 + 独立 LPE CVE 静态闸门）：  
+→ [`SECOND_BUG_AND_CVE_CANDIDATES.md`](SECOND_BUG_AND_CVE_CANDIDATES.md)

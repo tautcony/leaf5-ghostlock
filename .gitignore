@@ -58,3 +58,5 @@ leaf5/raw/kheaders/
 leaf5/raw/kheaders.tar.xz
 leaf5/raw/kernel_payload.bin
 leaf5/raw/vmlinux*
+
+*.log
