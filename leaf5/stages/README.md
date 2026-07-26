@@ -1,4 +1,4 @@
-> **文档类型**: 流水线索引 | **状态**: ✅ 有效 | **最后更新**: 2026-07-25（设备复测）
+> **文档类型**: 流水线索引 | **状态**: ✅ 有效 | **最后更新**: 2026-07-26
 
 # Leaf5 利用 / 分析流水线（stages）
 
@@ -6,9 +6,39 @@
 每个节点的 `README.md` 记录：**目标 → 代码清单 → 效果（成功/失败）→ 原因 → 下游依赖**。
 
 权威时间线证据仍见 [`../PROCESS_LOG.md`](../PROCESS_LOG.md)。  
+**利用链叙事总览**（每步达成什么）：[`../README.md`](../README.md) **「整条利用链」**。  
 **2026-07-25 全量编译 + 设备复测**：[`../docs/REVERIFY_2026-07-25.md`](../docs/REVERIFY_2026-07-25.md)。
 
 参考文档与归档：[`../docs/README.md`](../docs/README.md)。EDL 镜像提取：[`../edl/README.md`](../edl/README.md)。
+
+---
+
+## 整条利用链（分步效果）
+
+目标顺序与标准 GhostLock 写→root 同构；Leaf5 **#245** 实际达成情况如下。
+
+```text
+S00 画像 → S01 偏移 → S02 mm 泄漏 → S03 spray
+    → S04/S05 EDEADLK 真 UAF → reclaim → sched_setattr
+    → 写 fops → physrw → root
+         ✅ 到 UAF/panic          ⛔ 写原语（终局 B）
+```
+
+| 步 | 阶段 | 达成效果 | 状态 |
+|----|------|----------|------|
+| 0 | [S00](S00-device-profile/) | runtime/CONFIG/安全面与 `vmlinux`/`boot_a` 对齐 | ✅ |
+| 1 | [S01](S01-offsets-stack/) | waiter **0x50**；`task`@stack_top−**0x168**；pselect SHIFT=**+15**；结构体偏移入 `target.h` | ✅ |
+| 2 | [S02](S02-kernelsnitch-leak/) | 时序侧信道泄漏 `mm_struct`（KASLR/定向地址） | ✅ |
+| 3 | [S03](S03-heap-spray/) | sk_buff spray 就绪（供日后 fops 后 physrw；当前未消费） | ✅ |
+| 4 | [S04](S04-ghostlock-trigger/) | 三 futex + `CMP_REQUEUE_PI` → **EDEADLK errno=35**（真触发边，非 ret=1） | ✅ |
+| 5a | [S05](S05-stack-overwrite/) / [路由 10](S05-stack-overwrite/routes/10-ghostlock-true-uaf/) | `remove_waiter` 误清 `pi_blocked_on` → 栈 UAF | ✅ |
+| 5b | 同上 | 0x41 reclaim + consumer → **kernel_panic**（UAF live） | ✅ |
+| 5c | 同上 | shaped pselect + `sched_setattr`：**无** `ashmem_misc.fops` 受控写（矩阵全 ❌） | ⛔ 终局 B |
+| 6 | [S06](S06-e2e-chain/) | exploit 串到 EDEADLK/reclaim/sched；无 fops | ⚠️ |
+| 7 | [S07](S07-post-cfu/) | fops/pipe/root 源码在；设备未点燃 | ⛔ |
+
+**旧模型**（live CFU 直接盖 `waiter->task`）：路由 01–09 布局/权限关闭，见下表。  
+**新模型**（EDEADLK UAF + reclaim）：路由 **10** 为权威；写链 Outcome B，细节与矩阵见 [10 README](S05-stack-overwrite/routes/10-ghostlock-true-uaf/README.md)。
 
 ### 代码形态说明（避免「只有文档」误解）
 
@@ -20,7 +50,8 @@
 | S04 | 无本目录 `.c` | 触发嵌在 S05 `ghostlock*.c` / exploit |
 | S05-01/04/06 | 分析/权限 | 无成功 PoC（结论为关闭） |
 | S05-02/03/05 | Python 分析 | 静态为主 |
-| S05-07–09 | C 探针 | 本轮已 Docker 编译并设备抽测 |
+| S05-07–09 | C 探针 | 旧 CFU/加深路径；已 Docker 编译并设备抽测 |
+| S05-10 | C 探针 + exploit | EDEADLK / UAF panic / shaped 写矩阵 |
 | S06–S07 | 映射 exploit | 无独立 stages 二进制 |
 
 ---
@@ -30,13 +61,13 @@
 | 阶段 | 目录 | 结果 | 说明 |
 |------|------|------|------|
 | S00 | [device-profile](S00-device-profile/) | ✅ | 设备画像、CONFIG、raw 采集 |
-| S01 | [offsets-stack](S01-offsets-stack/) | ✅ | 结构体偏移、waiter 栈位置、pselect SHIFT |
+| S01 | [offsets-stack](S01-offsets-stack/) | ✅ | 结构体偏移、waiter 栈位置、pselect SHIFT（+15 CORRECTED） |
 | S02 | [kernelsnitch-leak](S02-kernelsnitch-leak/) | ✅ | mm_struct 泄漏 |
-| S03 | [heap-spray](S03-heap-spray/) | ✅ | sk_buff reclaim |
-| S04 | [ghostlock-trigger](S04-ghostlock-trigger/) | ✅ | FUTEX_CMP_REQUEUE_PI 产生 stale waiter |
+| S03 | [heap-spray](S03-heap-spray/) | ✅ | sk_buff reclaim（后半铺路） |
+| S04 | [ghostlock-trigger](S04-ghostlock-trigger/) | ✅ | 真触发边 = EDEADLK；旧文档 ret=1 仅为 requeue |
 | S05 | [stack-overwrite](S05-stack-overwrite/) | ⛔ | 旧 CFU 模型关闭；真 UAF EDEADLK/panic 已证；**shell 写链终局 B 关闭**（见 10） |
-| S06 | [e2e-chain](S06-e2e-chain/) | ⚠️ | 集成链到 CFU 触发；无 fops 覆盖 |
-| S07 | [post-cfu](S07-post-cfu/) | ⛔ | 依赖 S05 成功，未打通 |
+| S06 | [e2e-chain](S06-e2e-chain/) | ⚠️ | 集成到 EDEADLK + reclaim；无 fops 覆盖 |
+| S07 | [post-cfu](S07-post-cfu/) | ⛔ | 依赖 S05 写原语，未打通 |
 
 ### S05 路由矩阵（并列候选）
 

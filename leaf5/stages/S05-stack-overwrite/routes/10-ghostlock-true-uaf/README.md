@@ -70,8 +70,11 @@ root        ❌ 无 uid=0 证据
 
 ## 6. 下游
 
-- **无** 本链开放实验。
-- 超出 shell 链：用户授权的 Magisk/刷写；或 **新的** 二进制理论（新 VA / 新 syscall / 新写邻接）才可重开节点。
+- **本链（ashmem fops 写矩阵）无** 开放实验；勿重打 SHIFT/shape 同行。
+- **其它提权方向**（换写 gadget/consumer、oracle、BPF、授权刷写等）：见  
+  [`analysis/POST_B_ALTERNATIVES.md`](analysis/POST_B_ALTERNATIVES.md)。  
+  仅当出现 **新 [BIN] 理论** 时再开探针节点。
+- 确定性 root：用户授权的 Magisk/刷写/EDL 写。
 
 ## 7. 文件
 
@@ -79,6 +82,8 @@ root        ❌ 无 uid=0 证据
 |------|------|
 | `analysis/edeadlk_path.md` | EDEADLK 静态 |
 | `analysis/pselect_shift_corrected.md` | SHIFT=+15 |
+| `analysis/POST_B_ALTERNATIVES.md` | 终局 B 后可选方向（研究） |
+| `analysis/CHAIN_MATRIX.md` | popsicle vs Leaf5 对照 |
 | `probes/ghostlock_edeadlk_*.c` | EDEADLK / panic 对照 |
 | `exploit/src/{main,fops,util}.c` | 集成 EDEADLK+pselect+prio |
 | `exploit/targets/onyx-leaf5/target.h` | waiter 0x50、SHIFT=15、fops+0x10 |
