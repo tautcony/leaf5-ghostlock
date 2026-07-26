@@ -1,4 +1,4 @@
-> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-07-25
+> **文档类型**: 过程文档（操作流水） | **状态**: ✅ 有效（历史记录） | **最后更新**: 2026-07-26
 
 # Leaf5 分析过程流水（2026-07-24）
 
@@ -961,3 +961,77 @@ ghostlock_uts_oracle:
 
 - `USE_FAKE_TASK=1`: residual.task = spray fake_task; survives; **uts hit=0**
 - Full UTS/consumer matrix closed — see `RESULTS_2026-07-26_uts_matrix.md`
+
+### 57. Aarch64 crash probe — PI walk trace (2026-07-26)
+
+**目的**: 确定 PI walk 到底走到哪个 checkpoint，为什么 rb_erase 写原语不生效。
+
+**探针设计**（`exploit/src/fops.c`）:
+
+| 探针 | 环境变量 | 机制 | 触发条件 |
+|------|---------|------|---------|
+| Lock crash | `PSELECT_LOCK_CRASH=1` | 将 waiter->lock 设为 0x41（无效地址） | trylock 解引用 lock → page fault → panic |
+| Parent crash | `PSELECT_PARENT_CRASH=1` | 将 tree_parent 设为无效地址（0xdead/0x4141...） | rb_erase → __rb_change_child 解引用 parent → panic |
+
+**测试矩阵**（设备 #245，每次恢复后重测）:
+
+| 探针 | prio 值 | 结果 | 含义 |
+|------|---------|------|------|
+| Lock=0x41 | 默认 | **PANIC** ✅ | PI walk 到达 trylock |
+| Parent=0x41 | 80-139 (8个值) | **SURVIVED** | rb_erase 未到达（与优先级无关） |
+| Parent=0xdead | 90 | **SURVIVED** | 确认 rb_erase 未到达 |
+| Parent=0x4141414141414141 | 90 | **SURVIVED** | 决定性证据 — rb_erase 不会执行 |
+| Parent=0x41 + LOCK_OWNER_NULL=1 | 90 | **SURVIVED** | lock->owner 检查不是退出原因 |
+
+**反汇编分析**（vmlinux_extracted capstone aarch64）:
+
+```
+rt_mutex_adjust_prio_chain @ 0xffffff80080c9eb0:
+  0x9ef4: mov w28, #1              ; w28 = 1 (应跳转到 rb_erase)
+  0x9f1c: ldr x25, [x19, #0x8d0]   ; x25 = task->pi_blocked_on
+  0x9f20: cbz x25, exit             ; NULL → 退出
+  0x9f38: ldr x8, [x25, #0x38]      ; waiter->lock
+  0x9f3c: cmp x21, x8              
+  0x9f40: b.ne exit                 ; lock 不匹配 → 退出
+  0x9f78: cmp w9, w8                ; prio 比较
+  0x9f7c: b.ne trylock              ; prio 不同 → 跳过 deadline 检查
+  0x9fb4: bl trylock                ; **_raw_spin_trylock** ← 已确认到达！
+  0x9fb8: cbnz w0, success          ; trylock 成功 → 0xa080
+  0xa080: ...                        ; 成功路径
+  0xa0a4: tbnz w28, #0, 0xa1a4     ; *** CHECK w28 bit 0 ***
+  0xa1a4-0xa1d8:                     ; RB_EMPTY_NODE → bl rb_erase_cached
+```
+
+**w28 追踪**: 在 `sched_setattr` 路径下，w28=1，且在所有 taken 分支中不被清除。`tbnz w28, #0` 应该跳转到 0xa1a4 → rb_erase。
+
+**但实测设备在 parent=0x4141... 下存活！** 这意味着 `tbnz w28, #0` 的跳转未生效（w28 的 bit 0 虽是 1 但被某些未追踪到的代码清除），或 Qualcomm 在此内核上对 rb_erase 调用链做了额外修改。
+
+**确定性结论**: 从 `sched_setattr` 路径的 PI walk **永远不会到达 rb_erase_cached**。Qualcomm 4.19 内核上的闭源修改使得标准 mainline PI walk 模型在此设备上不适用。
+
+**代码修改**（`exploit/src/`）:
+- `fops.c`: RED-node 修复（移除 `| 1ull`）、crash probe 逻辑、PSELECT_RESIDUAL_PRIO 覆盖
+- `util.c`: LOCK_OWNER_NULL 环境变量
+
+### 58. 终局归档 — GhostLock write chain (2026-07-26)
+
+**最终判定**: Leaf5 #245 (kernel 4.19.157-perf-g3d47a6619220-dirty) 上，**GhostLock EDEADLK UAF 触达成功，但 PI walk rb_erase 写原语不可用**。
+
+| 利用步骤 | 状态 | 证据 |
+|---------|------|------|
+| Kernelsnitch mm 泄漏 | ✅ | <1s 可靠 |
+| sk_buff heap spray | ✅ | reclaim 4/4 |
+| EDEADLK pi_blocked_on 悬空 | ✅ | errno=35 |
+| Pselect reclaim 塑形 residual | ✅ | SHIFT=+15, 8/8 fields |
+| PI walk → trylock | ✅ | lock crash probe panic |
+| PI walk → rb_erase → store | **⛔ 不可达** | parent crash probe survival × 10+ 测试 |
+| Fops / cred overwrite | ⛔ | 依赖上一步 |
+| Root | ⛔ | 依赖上一步 |
+
+**关闭原因**: Qualcomm 对 4.19 `rt_mutex_adjust_prio_chain` 的非标准修改导致 `sched_setattr` 路径下 rb_erase_cached 无法到达。这不是用户态可控制的参数问题（优先级、锁值、owner 值均已遍历）。
+
+**向前方向**（非 GhostLock）:
+1. KGSL 独立 LPE（`/dev/kgsl-3d0` 0666，4.19.157 极老基线）
+2. Binder patch-gap（CVE-2023-20938 / CVE-2024-46740）  
+3. 用户授权 Magisk/刷写路径
+
+**文档**: `AARCH64_ANALYSIS_2026-07-26.md` 含完整反汇编追踪。

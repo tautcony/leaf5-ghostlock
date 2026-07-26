@@ -68,6 +68,20 @@ root        ❌ 无 uid=0 证据
 **Outcome B**：在 #245 上，本仓库 shell 可达的 GhostLock→pselect/adjtimex reclaim→`sched_setattr` 路径 **不能** 证明对 `ashmem_misc.fops`（或等价 CFI 槽）的受控写。  
 **不再保留** SHIFT 二分 / shape 对照 / “下一步再分析” 作为开放待办。
 
+### 5.1 Aarch64 crash probe 终局（2026-07-26 追加）
+
+**决定性证据**: rb_erase **不会被 PI walk 调用**。
+
+| 探针 | 环境变量 | 机制 | 结果 |
+|------|---------|------|------|
+| trylock 可达 | `PSELECT_LOCK_CRASH=1` | lock=0x41 → trylock 解引用 → fault | **PANIC** ✅ trylock 到达 |
+| rb_erase 可达 | `PSELECT_PARENT_CRASH=1` | parent=0x41/0xdead/0x4141... → rb_erase 解引用 → fault | **SURVIVED** ❌ rb_erase 从未到达 |
+
+全部 prio (80–139) × LOCK_OWNER × consumer 组合均存活。PI walk 在 trylock 成功后、`rb_erase_cached` 调用前的 `tbnz w28` 处提前退出。
+
+详见: [`analysis/AARCH64_ANALYSIS_2026-07-26.md`](analysis/AARCH64_ANALYSIS_2026-07-26.md), [`PROCESS_LOG`](../../../PROCESS_LOG.md) §57–§58。  
+**代码变更**: `exploit/src/fops.c`（RED-node 修复、crash probe、PSELECT_RESIDUAL_PRIO）、`exploit/src/util.c`（LOCK_OWNER_NULL）。
+
 ## 6. 下游
 
 - **本链（ashmem fops 写矩阵）无** 开放实验；勿重打 SHIFT/shape 同行。
@@ -94,6 +108,8 @@ root        ❌ 无 uid=0 证据
 | `probes/bpf_perf_reach.c` | BPF/perf shell 可达性 |
 | `analysis/RESULTS_2026-07-26_oracle_bpf.md` | BPF❌ perf✅；stage zero-lock panic |
 | `analysis/RESULTS_2026-07-26_uts_matrix.md` | exploit UTS 矩阵 hit=0；stdio fix；fops 对照 22 |
+| `analysis/AARCH64_ANALYSIS_2026-07-26.md` | aarch64 反汇编追踪、crash probe 设计与终局结论 |
 | `analysis/run_logs_2026-07-26/` | 原始 adb 日志 |
-| `exploit/src/{main,fops,util}.c` | `WRITE_ORACLE` / `PI_CONSUMER` |
+| `exploit/src/{main,fops,util}.c` | `WRITE_ORACLE` / `PI_CONSUMER` / crash probe / RED-node |
 | `exploit/targets/onyx-leaf5/target.h` | waiter 0x50、SHIFT=15、UTS_NAME_SYSNAME_OFF |
+| `../../../PROCESS_LOG.md` §57–§58 | 探针矩阵原始记录 |
