@@ -923,3 +923,41 @@ Static close reasons: wait_lock adjacency on misc.name; spray-lock erase not ret
 **终局**: shell GhostLock write→root chain **closed** on #245. No open SHIFT/shape homework.
 Docs: `stages/.../10-ghostlock-true-uaf/README.md` terminal.
 Logs: implementer `run_shape*.log` `run_shift*.log`.
+
+### 54. Post-B: non-CFI UTS oracle + multi-consumer + BPF/perf probe (2026-07-26)
+
+**代码**:
+- `probes/bpf_perf_reach.c`, `probes/ghostlock_uts_oracle.c`
+- `analysis/PI_STORE_CONSUMERS.md`, `RESULTS_2026-07-26_oracle_bpf.md`
+- exploit: `WRITE_ORACLE=uts|fops|zero`, `PI_CONSUMER=*`, uname sample in `fops.c`; `UTS_NAME_SYSNAME_OFF=4` [BIN]
+
+**设备**:
+```
+bpf PROG_LOAD/MAP_CREATE → errno=13
+perf_event_open SW/HW → ok (fd>=0)
+ghostlock_uts_oracle:
+  EDEADLK 35, WAIT 110, pselect ret=0
+  SKIP_CONSUMER → uname still Linux, HIT=0
+  with consumer → kernel_panic (empty_zero_page as lock unsafe)
+```
+
+**结论**: BPF shell 面关闭；perf 可达；非 CFI oracle 管线就位但本 stage craft 未写中 sysname；稳定 walk 仍用 spray fake_lock + WRITE_ORACLE=uts。
+
+### 55. WRITE_ORACLE=uts device matrix + stdio fix (2026-07-26)
+
+**Code**:
+- `open_selected_fds`: skip fd 0–2 (painted bits broke stdout/adb)
+- `PSELECT_ROUTE_ATTEMPTS` env; `WRITE_ORACLE` / `PI_CONSUMER` (prior)
+
+**Device matrix** (`analysis/RESULTS_2026-07-26_uts_matrix.md`, logs `run_logs_2026-07-26/`):
+- LOCK_SHAPE 0/1/2 + sched_setattr: EDEADLK✅ pselect✅ success=1 **uts hit=0**
+- setpriority/nice/sched_setscheduler/futex_lock_pi: same **hit=0**
+- PI_CONSUMER=all: **panic**
+- fops control: CFI **errno=22**, root=0
+
+**Conclusion**: non-CFI UTS oracle pipeline works; no store to sysname under current spray rb craft. Shell write primitive still absent.
+
+### 56. USE_FAKE_TASK + matrix close (2026-07-26)
+
+- `USE_FAKE_TASK=1`: residual.task = spray fake_task; survives; **uts hit=0**
+- Full UTS/consumer matrix closed — see `RESULTS_2026-07-26_uts_matrix.md`

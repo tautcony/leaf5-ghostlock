@@ -1,0 +1,80 @@
+=== matrix start 2026年 7月26日 星期日 03时35分54秒 UTC ===
+===== RUN uts_shape0_sched env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=0 PI_CONSUMER=sched_setattr ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=8035 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape0_sched MISS_OR_PARTIAL
+===== RUN uts_shape1_sched env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=1 PI_CONSUMER=sched_setattr ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=22311 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape1_sched MISS_OR_PARTIAL
+[33m[*] [0muts oracle before sysname='Linux'
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=2 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=2 mode=sched_setattr fake_lock=ffffff80000404d0 fake_fops=ffffff8000040180
+[33m[*] [0mpselect returned attempt=2 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=3 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=3 mode=sched_setattr fake_lock=ffffffa0001804d0 fake_fops=ffffffa000180180
+[33m[*] [0mpselect returned attempt=3 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=4 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=4 mode=sched_setattr fake_lock=ffffff98000a84d0 fake_fops=ffffff98000a8180
+[33m[*] [0mpselect returned attempt=4 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=5 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=5 mode=sched_setattr fake_lock=ffffff80001a04d0 fake_fops=ffffff80001a0180
+[33m[*] [0mpselect returned attempt=5 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=6 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=6 mode=sched_setattr fake_lock=ffffff80000404d0 fake_fops=ffffff8000040180
+[33m[*] [0mpselect returned attempt=6 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=7 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=7 mode=sched_setattr fake_lock=ffffff98000284d0 fake_fops=ffffff9800028180
+[33m[*] [0mpselect returned attempt=7 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[33m[*] [0mconsumer sched_setattr seq=8 ret=0 errno=0 tid=11909
+[33m[*] [0mconsumer done seq=8 mode=sched_setattr fake_lock=ffffff88000e04d0 fake_fops=ffffff88000e0180
+[33m[*] [0mpselect returned attempt=8 ret=0 errno=0 calls=1 success=1 delay=0
+[33m[*] [0muts oracle after sysname='Linux' hit=0 target=ffffff800381bf2c value=454c4341524f4c47
+[33m[*] [0mskip CFI probe (WRITE_ORACLE non-fops or SKIP_CFI_PROBE)
+[32m[+] [0mpipe-physrw-summary pid=6311 done=0 root=0 kaslr=1 base=ffffff8008080000 slide=0000000000000000
+[32m[+] [0mpipe physrw pid=6311 done=0 root=0 kaslr=1 read_ok=0 write_ok=0 rw64=0/0 uid=4294967295->4294967295 sid=4294967295/4294967295->4294967295/4294967295 selinux=255->255 setgid=-1 setuid=-1 setenforce=-1/0
+RESULT=uts_shape2_sched MISS_OR_PARTIAL
+===== RUN uts_shape0_setpriority env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=0 PI_CONSUMER=setpriority ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=20595 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape0_setpriority MISS_OR_PARTIAL
+===== RUN uts_shape0_nice env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=0 PI_CONSUMER=nice ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=4494 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape0_nice MISS_OR_PARTIAL
+===== RUN uts_shape0_sched_setscheduler env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=0 PI_CONSUMER=sched_setscheduler ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=19107 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape0_sched_setscheduler MISS_OR_PARTIAL
+===== RUN uts_shape0_futex_lock_pi env=WRITE_ORACLE=uts SKIP_CFI_PROBE=1 PSELECT_LOCK_SHAPE=0 PI_CONSUMER=futex_lock_pi ROUTE_WAIT_SECONDS=4 KSNITCH_COLLISIONS=2 =====
+[32m[+] [0mstartup context pid=1866 uid=2000 euid=2000 gid=2000 egid=2000 attr=u:r:shell:s0 enforce=1
+[33m[*] [0mowner: LOCK_PI f_pi_chain (EDEADLK edge)
+[33m[*] [0mmain: CMP_REQUEUE_PI ret=-1 errno=35 (Resource deadlock would occur) — want EDEADLK(35)
+[32m[+] [0mmain: EDEADLK — GhostLock pi_blocked_on primed
+RESULT=uts_shape0_futex_lock_pi MISS_OR_PARTIAL
+RESULT=uts_shape0_all PANIC
+=== matrix done 2026年 7月26日 星期日 03时49分15秒 UTC ===

@@ -90,6 +90,8 @@
 
 **验收**：任意一次对已知内核地址的 **读回差异**（见 D），再接到 S07 或直接 `cred`。
 
+**2026-07-26 实测（关闭）**: spray + LOCK_SHAPE 0/1/2 + 多 consumer 单跑，`WRITE_ORACLE=uts` 全部 **hit=0**（见 `RESULTS_2026-07-26_uts_matrix.md`）。非 CFI oracle 管线有效，**当前 rb craft 未对 sysname store**。勿重复同构矩阵。
+
 ---
 
 ### B — 换 consumer（仍用悬空 `pi_blocked_on`）

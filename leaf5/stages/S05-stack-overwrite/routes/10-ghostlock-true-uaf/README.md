@@ -92,6 +92,8 @@ root        ❌ 无 uid=0 证据
 | `probes/ghostlock_edeadlk_*.c` | EDEADLK / panic 对照 |
 | `probes/ghostlock_uts_oracle.c` | 非 CFI uname oracle + 多 consumer |
 | `probes/bpf_perf_reach.c` | BPF/perf shell 可达性 |
-| `analysis/RESULTS_2026-07-26_oracle_bpf.md` | 设备实测：BPF❌ perf✅；UTS 无 store；zero-lock consumer panic |
+| `analysis/RESULTS_2026-07-26_oracle_bpf.md` | BPF❌ perf✅；stage zero-lock panic |
+| `analysis/RESULTS_2026-07-26_uts_matrix.md` | exploit UTS 矩阵 hit=0；stdio fix；fops 对照 22 |
+| `analysis/run_logs_2026-07-26/` | 原始 adb 日志 |
 | `exploit/src/{main,fops,util}.c` | `WRITE_ORACLE` / `PI_CONSUMER` |
 | `exploit/targets/onyx-leaf5/target.h` | waiter 0x50、SHIFT=15、UTS_NAME_SYSNAME_OFF |
